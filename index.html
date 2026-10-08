@@ -3,47 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Phi Cards - Study Smart & Bright</title>
-  
+  <title>Phi Cards - Study Smarter</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- React & Babel CDNs -->
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  
-  <!-- Google Fonts: Inter & Outfit for cute modern aesthetics -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #EDF4F9; /* Light Powder Silver-Blue */
-      color: #1E293B;
+    /* Custom Color Theme Variables */
+    :root {
+      --color-wine: #6B1D2F;
+      --color-wine-dark: #4A121F;
+      --color-navy: #1B2A4A;
+      --color-pink: #F8C8DC;
+      --color-pink-light: #FDF2F7;
+      --color-bg-blue: #EDF4F9;
     }
-
-    h1, h2, h3, .font-heading {
-      font-family: 'Outfit', sans-serif;
-    }
-
-    /* Color Constants in Custom CSS Utility Classes */
-    .bg-powder-blue { background-color: #EDF4F9; }
-    .bg-navy { background-color: #1B2A4A; }
-    .bg-navy-dark { background-color: #121D34; }
-    .text-navy { color: #1B2A4A; }
-    .border-navy { border-color: #1B2A4A; }
-
-    .bg-wine { background-color: #6B1D2F; }
-    .bg-wine-hover:hover { background-color: #551624; }
-    .text-wine { color: #6B1D2F; }
-    .border-wine { border-color: #6B1D2F; }
-
-    .bg-blush-pink { background-color: #F8C8DC; }
-    .bg-blush-light { background-color: #FDF2F7; }
-    .text-blush-pink { color: #D86B93; }
-    .border-blush-pink { border-color: #F8C8DC; }
 
     /* 3D Flip Card Effect */
     .perspective-1000 { perspective: 1000px; }
@@ -51,1207 +28,409 @@
     .backface-hidden { backface-visibility: hidden; }
     .rotate-y-180 { transform: rotateY(180deg); }
 
-    /* Custom Scrollbar for cute decks list */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #EDF4F9;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #8A9EA7;
-      border-radius: 9999px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #6B1D2F;
+    /* Print Styles for Study Guide */
+    @media print {
+      header, .no-print { display: none !important; }
+      body { background: white !important; color: black !important; }
+      .print-area { width: 100% !important; margin: 0 !important; padding: 0 !important; }
     }
   </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="bg-[#EDF4F9] text-[#1B2A4A] min-h-screen font-sans">
   <div id="root"></div>
 
   <script type="text/babel">
-    const DEFAULT_DECKS = [
+    const { useState, useEffect, useRef } = React;
+
+    // Initial Starter Decks
+    const INITIAL_DECKS = [
       {
-        id: 'piphi-history',
-        title: 'Pi Beta Phi Heritage & Symbols',
-        description: 'Foundational facts, colors, symbols, and history of Pi Beta Phi.',
+        id: 'piphi-heritage',
+        title: 'Pi Phi Heritage & History',
+        description: 'Key facts, dates, symbols, and philanthropy',
         cards: [
-          { id: 'p1', term: 'Founding Date', definition: 'April 28, 1867 at Monmouth College in Monmouth, Illinois' },
-          { id: 'p2', term: 'Official Colors', definition: 'Wine and Silver Blue (with soft blush accents)' },
-          { id: 'p3', term: 'Official Flower', definition: 'Wine Carnation' },
-          { id: 'p4', term: 'Official Symbol', definition: 'The Golden Arrow' },
-          { id: 'p5', term: 'Philanthropy', definition: 'Read > Lead > Achieve (Literacy initiative)' },
-          { id: 'p6', term: 'Official Crest', definition: 'Monogram of IC with a gold arrow pointing up & right' },
-          { id: 'p7', term: 'Original Name', definition: 'I.C. Sorosis (First secret college society for women)' },
-          { id: 'p8', term: 'Founders Count', definition: '12 visionary founding women' }
+          { id: 1, term: "Founding Date", definition: "April 28, 1867 at Monmouth College" },
+          { id: 2, term: "Official Colors", definition: "Wine and Silver Blue" },
+          { id: 3, term: "Official Flower", definition: "Wine Carnation" },
+          { id: 4, term: "Symbol", definition: "Arrow" },
+          { id: 5, term: "Philanthropy", definition: "Read > Lead > Achieve" },
+          { id: 6, term: "Motto", definition: "Cultivating Women of Leadership and Service" }
         ]
       },
       {
-        id: 'bio-101',
-        title: 'Biology 101: Cell Organelles',
-        description: 'Key organelle structures and their functions within eukaryotic cells.',
+        id: 'biology-101',
+        title: 'Biology 101 - Cell Structure',
+        description: 'Midterm review study set',
         cards: [
-          { id: 'b1', term: 'Mitochondria', definition: 'Powerhouse of the cell; produces ATP through cellular respiration' },
-          { id: 'b2', term: 'Nucleus', definition: 'Contains genetic material (DNA) and directs cellular activity' },
-          { id: 'b3', term: 'Ribosome', definition: 'Site of protein synthesis in the cytoplasm or on Rough ER' },
-          { id: 'b4', term: 'Lysosome', definition: 'Contains digestive enzymes to break down waste materials' },
-          { id: 'b5', term: 'Endoplasmic Reticulum', definition: 'Membrane network for protein synthesis (Rough) and lipid synthesis (Smooth)' },
-          { id: 'b6', term: 'Golgi Apparatus', definition: 'Modifies, sorts, and packages proteins for transport' }
-        ]
-      },
-      {
-        id: 'spanish-101',
-        title: 'Spanish 101: Everyday Basics',
-        description: 'Essential greeting phrases and vocabulary for conversational Spanish.',
-        cards: [
-          { id: 's1', term: '¡Hola! ¿Cómo estás?', definition: 'Hello! How are you?' },
-          { id: 's2', term: 'Mucho gusto', definition: 'Nice to meet you' },
-          { id: 's3', term: 'Por favor & Gracias', definition: 'Please & Thank you' },
-          { id: 's4', term: 'De nada', definition: 'You are welcome' },
-          { id: 's5', term: '¿Dónde está el baño?', definition: 'Where is the restroom?' },
-          { id: 's6', term: 'Hasta luego', definition: 'See you later' }
+          { id: 101, term: "Mitochondria", definition: "Powerhouse of the cell, produces ATP" },
+          { id: 102, term: "Nucleus", definition: "Contains cellular DNA and controls activity" },
+          { id: 103, term: "Ribosome", definition: "Site of protein synthesis" },
+          { id: 104, term: "Osmosis", definition: "Diffusion of water across a semi-permeable membrane" }
         ]
       }
     ];
 
-    const { useState, useEffect, useRef, useMemo } = React;
-
     function App() {
-      // Decks State initialized from LocalStorage
       const [decks, setDecks] = useState(() => {
-        const saved = localStorage.getItem('phicards_decks');
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-          } catch(e) { console.error("Could not parse saved decks", e); }
-        }
-        return DEFAULT_DECKS;
+        const saved = localStorage.getItem('phicards_decks_v2');
+        return saved ? JSON.parse(saved) : INITIAL_DECKS;
       });
 
-      // Active selected deck ID
-      const [activeDeckId, setActiveDeckId] = useState(() => {
-        const savedActive = localStorage.getItem('phicards_active_id');
-        return savedActive || 'piphi-history';
-      });
+      const [activeDeckId, setActiveDeckId] = useState(() => decks[0]?.id || '');
+      const [activeMode, setActiveMode] = useState('flashcards'); // flashcards, learn, test, match, guide, edit
 
-      // Navigation Modes: 'flashcards' | 'learn' | 'match' | 'edit-deck' | 'manage-decks'
-      const [activeMode, setActiveMode] = useState('flashcards');
-      
-      // Toast notification message
-      const [toast, setToast] = useState(null);
-
-      // Save decks & active ID to localStorage
+      // Sync decks to local storage
       useEffect(() => {
-        localStorage.setItem('phicards_decks', JSON.stringify(decks));
+        localStorage.setItem('phicards_decks_v2', JSON.stringify(decks));
       }, [decks]);
 
-      useEffect(() => {
-        localStorage.setItem('phicards_active_id', activeDeckId);
-      }, [activeDeckId]);
-
-      // Active Deck lookup helper
-      const activeDeck = useMemo(() => {
-        return decks.find(d => d.id === activeDeckId) || decks[0] || { id: 'empty', title: 'No Deck', description: '', cards: [] };
-      }, [decks, activeDeckId]);
-
-      const showToast = (msg) => {
-        setToast(msg);
-        setTimeout(() => setToast(null), 3000);
-      };
+      const activeDeck = decks.find(d => d.id === activeDeckId) || decks[0];
 
       // Deck Management Handlers
-      const handleCreateDeck = (title, description) => {
+      const handleCreateDeck = () => {
+        const title = prompt('Enter Set / Deck Name:');
+        if (!title) return;
         const newDeck = {
           id: 'deck-' + Date.now(),
-          title: title || 'Untitled Study Set',
-          description: description || 'Custom study set.',
+          title,
+          description: 'Custom Study Set',
           cards: []
         };
         setDecks([...decks, newDeck]);
         setActiveDeckId(newDeck.id);
-        setActiveMode('edit-deck');
-        showToast('✨ New study set created! Add your cards below.');
+        setActiveMode('edit');
       };
 
-      const handleUpdateDeck = (updatedDeck) => {
-        setDecks(decks.map(d => d.id === updatedDeck.id ? updatedDeck : d));
-        showToast('💾 Saved changes to study set!');
-      };
-
-      const handleDeleteDeck = (deckId) => {
+      const handleDeleteDeck = (id) => {
         if (decks.length <= 1) {
-          showToast('⚠️ You must keep at least one study set!');
+          alert('You must have at least one study set!');
           return;
         }
-        const updated = decks.filter(d => d.id !== deckId);
-        setDecks(updated);
-        if (activeDeckId === deckId) {
+        if (confirm('Are you sure you want to delete this study set?')) {
+          const updated = decks.filter(d => d.id !== id);
+          setDecks(updated);
           setActiveDeckId(updated[0].id);
         }
-        showToast('🗑️ Study set deleted.');
+      };
+
+      const handleUpdateCards = (newCards) => {
+        setDecks(decks.map(d => d.id === activeDeck.id ? { ...d, cards: newCards } : d));
       };
 
       return (
-        <div class="min-h-screen flex flex-col bg-[#EDF4F9] text-slate-800">
-          
-          {/* Top Header */}
-          <header class="bg-[#1B2A4A] text-white shadow-lg sticky top-0 z-50 border-b-4 border-[#F8C8DC]">
-            <div class="max-w-6xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
+        <div class="min-h-screen flex flex-col">
+          {/* Main Top Header */}
+          <header class="bg-[#6B1D2F] text-white shadow-lg sticky top-0 z-50">
+            <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
               
-              {/* Brand Title */}
-              <div class="flex items-center gap-3 cursor-pointer" onClick={() => setActiveMode('flashcards')}>
-                <div class="w-10 h-10 rounded-2xl bg-[#6B1D2F] flex items-center justify-center text-xl shadow-md border border-[#F8C8DC]">
-                  🏹
-                </div>
+              {/* Logo / Branding */}
+              <div class="flex items-center gap-3">
+                <div class="bg-[#F8C8DC] text-[#6B1D2F] p-2 rounded-xl text-xl shadow-inner font-bold">🏹</div>
                 <div>
-                  <div class="flex items-center gap-1.5">
-                    <h1 class="text-2xl font-extrabold tracking-tight font-heading text-white">Phi <span class="text-[#F8C8DC]">Cards</span></h1>
-                    <span class="text-xs bg-[#6B1D2F] text-[#F8C8DC] font-bold px-2 py-0.5 rounded-full border border-[#F8C8DC]/40">🩷 ✨</span>
-                  </div>
-                  <p class="text-xs text-slate-300 font-medium hidden sm:block">Pi Phi Inspired Free Study Suite</p>
+                  <h1 class="text-2xl font-extrabold tracking-wide text-white">Phi <span class="text-[#F8C8DC]">Cards</span></h1>
+                  <p class="text-xs text-[#F8C8DC] font-light">Study Smarter, Not Harder</p>
                 </div>
               </div>
 
-              {/* Deck Quick Selector & Stats */}
-              <div class="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end">
-                <div class="relative flex-1 md:flex-none">
-                  <select
-                    value={activeDeck.id}
-                    onChange={(e) => {
-                      setActiveDeckId(e.target.value);
-                      showToast(`Switched to "${decks.find(d => d.id === e.target.value)?.title}"`);
-                    }}
-                    class="w-full md:w-64 bg-[#121D34] text-white text-sm font-semibold rounded-xl px-3 py-2 border border-[#8A9EA7]/40 focus:outline-none focus:border-[#F8C8DC] shadow-inner cursor-pointer"
-                  >
-                    {decks.map(deck => (
-                      <option key={deck.id} value={deck.id}>
-                        📚 {deck.title} ({deck.cards.length} cards)
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <button
-                  onClick={() => setActiveMode('manage-decks')}
-                  class="px-3 py-2 bg-[#F8C8DC] text-[#1B2A4A] hover:bg-white text-xs font-bold rounded-xl shadow transition flex items-center gap-1.5 whitespace-nowrap"
-                  title="Manage Decks"
+              {/* Set Switcher Dropdown */}
+              <div class="flex items-center gap-2">
+                <select 
+                  value={activeDeckId}
+                  onChange={(e) => setActiveDeckId(e.target.value)}
+                  class="bg-[#1B2A4A] text-white px-3 py-2 rounded-lg border border-[#F8C8DC]/30 text-sm font-semibold focus:outline-none"
                 >
-                  <span>🗂️ Sets</span>
-                  <span class="bg-[#1B2A4A] text-white rounded-full px-1.5 py-0.2 text-[10px]">{decks.length}</span>
+                  {decks.map(d => (
+                    <option key={d.id} value={d.id}>{d.title} ({d.cards.length} cards)</option>
+                  ))}
+                </select>
+                <button 
+                  onClick={handleCreateDeck}
+                  class="bg-[#F8C8DC] text-[#1B2A4A] px-3 py-2 rounded-lg font-bold text-sm hover:bg-white transition shadow"
+                >
+                  + New Set
                 </button>
               </div>
             </div>
 
-            {/* Mode Navigation Tabs */}
-            <div class="bg-[#121D34] px-4 border-t border-[#8A9EA7]/20">
-              <div class="max-w-6xl mx-auto flex gap-1 overflow-x-auto py-1.5 no-scrollbar">
+            {/* Navigation Tabs Bar */}
+            <div class="bg-[#1B2A4A] border-t border-[#6B1D2F]/40 px-4 py-2">
+              <div class="max-w-6xl mx-auto flex flex-wrap gap-2 text-xs md:text-sm font-semibold">
                 {[
-                  { id: 'flashcards', label: 'Flashcards', icon: '🎴' },
-                  { id: 'learn', label: 'Learn Mode', icon: '🧠' },
-                  { id: 'match', label: 'Match Game', icon: '⏱️' },
-                  { id: 'edit-deck', label: 'Edit Cards', icon: '✏️' },
+                  { id: 'flashcards', label: '🎴 Flashcards' },
+                  { id: 'learn', label: '🧠 Learn' },
+                  { id: 'test', label: '📝 Practice Test' },
+                  { id: 'match', label: '⚡ Match Game' },
+                  { id: 'guide', label: '📑 Study Guide' },
+                  { id: 'edit', label: '⚙️ Edit Set' }
                 ].map(tab => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveMode(tab.id)}
-                    class={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition whitespace-nowrap ${
-                      activeMode === tab.id
-                        ? 'bg-[#6B1D2F] text-white shadow-md border border-[#F8C8DC]/40 ring-1 ring-[#F8C8DC]'
-                        : 'text-slate-300 hover:bg-[#1B2A4A] hover:text-white'
+                    class={`px-4 py-1.5 rounded-lg transition ${
+                      activeMode === tab.id 
+                        ? 'bg-[#F8C8DC] text-[#1B2A4A] font-bold shadow' 
+                        : 'text-slate-200 hover:bg-white/10'
                     }`}
                   >
-                    <span>{tab.icon}</span>
-                    <span>{tab.label}</span>
+                    {tab.label}
                   </button>
                 ))}
               </div>
             </div>
           </header>
 
-          {/* Toast Notification Popup */}
-          {toast && (
-            <div class="fixed bottom-5 right-5 z-50 bg-[#1B2A4A] text-white px-5 py-3 rounded-2xl shadow-2xl border-2 border-[#F8C8DC] flex items-center gap-3 animate-bounce">
-              <span class="text-sm font-semibold">{toast}</span>
-            </div>
-          )}
-
-          {/* Main App Container */}
-          <main class="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 flex flex-col">
-            
-            {/* Active Deck Header Info Banner */}
-            {activeMode !== 'manage-decks' && (
-              <div class="mb-6 bg-white rounded-2xl p-4 sm:p-5 border-2 border-[#8A9EA7]/30 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold uppercase tracking-wider text-[#6B1D2F] bg-[#FDF2F7] px-2.5 py-0.5 rounded-full border border-[#F8C8DC]">
-                      Active Study Set
-                    </span>
-                    <span class="text-xs text-slate-500 font-semibold">{activeDeck.cards.length} Cards</span>
-                  </div>
-                  <h2 class="text-xl sm:text-2xl font-bold font-heading text-[#1B2A4A] mt-1">{activeDeck.title}</h2>
-                  <p class="text-xs sm:text-sm text-slate-600 mt-0.5">{activeDeck.description}</p>
-                </div>
-
-                <div class="flex items-center gap-2 self-end sm:self-center">
-                  <button
-                    onClick={() => setActiveMode('edit-deck')}
-                    class="px-3 py-1.5 bg-[#EDF4F9] text-[#1B2A4A] hover:bg-[#F8C8DC] text-xs font-bold rounded-lg border border-[#8A9EA7]/40 transition"
-                  >
-                    + Add Cards
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Dynamic View Rendering */}
-            {activeDeck.cards.length === 0 && activeMode !== 'manage-decks' && activeMode !== 'edit-deck' ? (
-              <div class="bg-white rounded-3xl p-10 text-center border-2 border-dashed border-[#8A9EA7] max-w-md mx-auto my-12 shadow-sm">
-                <div class="text-4xl mb-3">📝</div>
-                <h3 class="text-xl font-bold text-[#1B2A4A] mb-2 font-heading">This Deck is Empty!</h3>
-                <p class="text-sm text-slate-600 mb-6">Add terms and definitions to start studying with Flashcards, Learn, or Match.</p>
-                <button
-                  onClick={() => setActiveMode('edit-deck')}
-                  class="px-6 py-3 bg-[#6B1D2F] text-white font-bold rounded-xl shadow-md hover:bg-[#551624] transition"
+          {/* Main Workspace Area */}
+          <main class="flex-1 max-w-5xl w-full mx-auto p-4 md:p-6 flex flex-col justify-center">
+            {activeDeck.cards.length === 0 && activeMode !== 'edit' ? (
+              <div class="bg-white p-8 rounded-2xl text-center border-2 border-[#F8C8DC] shadow-md my-auto">
+                <h2 class="text-xl font-bold text-[#6B1D2F] mb-2">This study set is empty!</h2>
+                <p class="text-slate-600 mb-6">Add cards to this set before starting study modes.</p>
+                <button 
+                  onClick={() => setActiveMode('edit')}
+                  class="px-6 py-2 bg-[#1B2A4A] text-white font-bold rounded-xl hover:bg-[#6B1D2F] transition"
                 >
-                  + Add Cards Now
+                  Go to Edit Cards
                 </button>
               </div>
             ) : (
               <>
                 {activeMode === 'flashcards' && <FlashcardsView cards={activeDeck.cards} />}
-                {activeMode === 'learn' && <LearnView cards={activeDeck.cards} deckTitle={activeDeck.title} />}
+                {activeMode === 'learn' && <LearnView cards={activeDeck.cards} />}
+                {activeMode === 'test' && <TestView cards={activeDeck.cards} deckTitle={activeDeck.title} />}
                 {activeMode === 'match' && <MatchView cards={activeDeck.cards} />}
-                {activeMode === 'edit-deck' && <EditDeckView deck={activeDeck} onUpdateDeck={handleUpdateDeck} onDeleteDeck={handleDeleteDeck} />}
+                {activeMode === 'guide' && <StudyGuideView cards={activeDeck.cards} title={activeDeck.title} />}
+                {activeMode === 'edit' && (
+                  <EditDeckView 
+                    deck={activeDeck} 
+                    onUpdateCards={handleUpdateCards} 
+                    onDeleteDeck={() => handleDeleteDeck(activeDeck.id)} 
+                  />
+                )}
               </>
             )}
-
-            {activeMode === 'manage-decks' && (
-              <ManageDecksView
-                decks={decks}
-                activeDeckId={activeDeckId}
-                onSelectDeck={(id) => { setActiveDeckId(id); setActiveMode('flashcards'); }}
-                onCreateDeck={handleCreateDeck}
-                onDeleteDeck={handleDeleteDeck}
-              />
-            )}
           </main>
-
-          {/* Footer */}
-          <footer class="mt-auto bg-white border-t border-[#8A9EA7]/30 py-4 text-center text-xs text-slate-500">
-            <p class="font-medium">Phi Cards • Tailored for Pi Beta Phi Sisters & Smart Learners Everywhere 🏹 🩷</p>
-          </footer>
         </div>
       );
     }
 
+    /* -------------------------------------------------------------
+       1. FLASHCARDS MODE (WITH KNOW/STILL LEARNING SORTING)
+    ------------------------------------------------------------- */
     function FlashcardsView({ cards }) {
       const [currentIndex, setCurrentIndex] = useState(0);
       const [isFlipped, setIsFlipped] = useState(false);
+      const [masteredIds, setMasteredIds] = useState([]);
+      const [learningIds, setLearningIds] = useState([]);
+      const [filterMissedOnly, setFilterMissedOnly] = useState(false);
 
-      // Reset card flip index if cards array changes
-      useEffect(() => {
-        setCurrentIndex(0);
-        setIsFlipped(false);
-      }, [cards]);
+      // Filter active deck list if user chooses "Review Missed Only"
+      const activeList = filterMissedOnly 
+        ? cards.filter(c => learningIds.includes(c.id)) 
+        : cards;
 
-      const currentCard = cards[currentIndex] || cards[0];
+      const card = activeList[currentIndex] || activeList[0];
 
-      const nextCard = () => {
-        setIsFlipped(false);
-        setCurrentIndex((prev) => (prev + 1) % cards.length);
-      };
-
-      const prevCard = () => {
-        setIsFlipped(false);
-        setCurrentIndex((prev) => (prev - 1 + cards.length) % cards.length);
-      };
-
-      const flipCard = () => {
-        setIsFlipped((prev) => !prev);
-      };
-
-      // Keyboard Event Listeners (Left, Right, Spacebar)
+      // Handle Keyboard Controls (Space = Flip, Left = Still Learning, Right = Mastered)
       useEffect(() => {
         const handleKeyDown = (e) => {
-          // Ignore keypresses if user is typing in input fields
-          const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
-          if (activeTag === 'input' || activeTag === 'textarea' || document.activeElement.isContentEditable) {
-            return;
-          }
-
-          if (e.key === 'ArrowRight') {
+          if (e.code === 'Space') {
             e.preventDefault();
-            nextCard();
-          } else if (e.key === 'ArrowLeft') {
-            e.preventDefault();
-            prevCard();
-          } else if (e.key === ' ' || e.code === 'Space') {
-            e.preventDefault();
-            flipCard();
+            setIsFlipped(prev => !prev);
+          } else if (e.code === 'ArrowLeft') {
+            handleSort(false); // Still Learning
+          } else if (e.code === 'ArrowRight') {
+            handleSort(true); // Mastered
           }
         };
-
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-      }, [cards, currentIndex]);
+      }, [card, currentIndex, activeList]);
+
+      const handleSort = (isMastered) => {
+        if (!card) return;
+        setIsFlipped(false);
+
+        if (isMastered) {
+          if (!masteredIds.includes(card.id)) setMasteredIds([...masteredIds, card.id]);
+          setLearningIds(learningIds.filter(id => id !== card.id));
+        } else {
+          if (!learningIds.includes(card.id)) setLearningIds([...learningIds, card.id]);
+          setMasteredIds(masteredIds.filter(id => id !== card.id));
+        }
+
+        if (currentIndex < activeList.length) {
+          setCurrentIndex(prev => prev + 1);
+        }
+      };
+
+      const handleReset = (missedOnly = false) => {
+        setFilterMissedOnly(missedOnly);
+        setCurrentIndex(0);
+        setIsFlipped(false);
+        if (!missedOnly) {
+          setMasteredIds([]);
+          setLearningIds([]);
+        }
+      };
+
+      // Summary screen when set is finished
+      if (currentIndex >= activeList.length) {
+        return (
+          <div class="bg-white p-8 rounded-2xl border-2 border-[#F8C8DC] shadow-xl text-center max-w-lg mx-auto">
+            <h2 class="text-3xl font-extrabold text-[#6B1D2F] mb-3">🎉 Set Complete!</h2>
+            <p class="text-slate-600 mb-6">Here is how you performed on this deck:</p>
+            
+            <div class="grid grid-cols-2 gap-4 mb-6">
+              <div class="bg-emerald-50 border border-emerald-300 p-4 rounded-xl">
+                <span class="text-3xl font-extrabold text-emerald-600">{masteredIds.length}</span>
+                <p class="text-xs font-bold text-emerald-800 uppercase mt-1">Mastered ✅</p>
+              </div>
+              <div class="bg-rose-50 border border-rose-300 p-4 rounded-xl">
+                <span class="text-3xl font-extrabold text-rose-600">{learningIds.length}</span>
+                <p class="text-xs font-bold text-rose-800 uppercase mt-1">Still Learning ❌</p>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-3">
+              {learningIds.length > 0 && (
+                <button 
+                  onClick={() => handleReset(true)} 
+                  class="w-full py-3 bg-[#6B1D2F] text-white font-bold rounded-xl shadow hover:bg-[#4A121F]"
+                >
+                  Review Only Missed Cards ({learningIds.length})
+                </button>
+              )}
+              <button 
+                onClick={() => handleReset(false)} 
+                class="w-full py-3 bg-[#1B2A4A] text-white font-bold rounded-xl shadow hover:bg-slate-800"
+              >
+                Restart Entire Deck
+              </button>
+            </div>
+          </div>
+        );
+      }
 
       return (
-        <div class="flex flex-col items-center max-w-2xl mx-auto w-full my-auto">
+        <div class="flex flex-col items-center max-w-2xl mx-auto w-full">
           
-          {/* Progress Tracker Pill */}
-          <div class="w-full flex justify-between items-center mb-3 px-2">
-            <span class="text-xs font-bold text-[#1B2A4A] bg-[#F8C8DC] px-3 py-1 rounded-full shadow-sm">
-              ✨ Card {currentIndex + 1} of {cards.length}
-            </span>
-            <span class="text-xs text-slate-500 font-medium hidden sm:inline">
-              Tip: Use Keyboard Shortcuts ⌨️
-            </span>
+          {/* Top Progress & Stats */}
+          <div class="w-full flex justify-between items-center mb-3 text-xs font-bold text-[#1B2A4A]">
+            <span class="bg-[#F8C8DC] px-3 py-1 rounded-full">Card {currentIndex + 1} of {activeList.length}</span>
+            <div class="flex gap-3">
+              <span class="text-emerald-600">Mastered: {masteredIds.length}</span>
+              <span class="text-rose-600">Review: {learningIds.length}</span>
+            </div>
           </div>
 
-          {/* 3D Flip Flashcard */}
+          {/* Flip Container */}
           <div 
-            onClick={flipCard} 
-            class="w-full h-80 sm:h-96 cursor-pointer perspective-1000 select-none group"
+            onClick={() => setIsFlipped(!isFlipped)} 
+            class="w-full h-80 cursor-pointer perspective-1000 select-none my-2"
           >
             <div class={`relative w-full h-full duration-500 transform-style-3d transition-transform ${isFlipped ? 'rotate-y-180' : ''}`}>
               
-              {/* FRONT OF CARD (Term) - Creamy White with Soft Pink & Silver Blue accents */}
-              <div class="absolute w-full h-full bg-white border-2 border-[#F8C8DC] rounded-3xl shadow-xl flex flex-col justify-between p-8 backface-hidden group-hover:border-[#6B1D2F] transition-all">
-                <div class="flex justify-between items-center">
-                  <span class="text-xs font-extrabold text-[#6B1D2F] bg-[#FDF2F7] px-3 py-1 rounded-full border border-[#F8C8DC] tracking-wider uppercase">
-                    TERM
-                  </span>
-                  <span class="text-sm">🏹</span>
-                </div>
-
-                <div class="my-auto text-center px-4">
-                  <p class="text-2xl sm:text-3xl font-bold font-heading text-[#1B2A4A] leading-relaxed">
-                    {currentCard?.term}
-                  </p>
-                </div>
-
-                <div class="text-center">
-                  <span class="text-xs font-semibold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full inline-flex items-center gap-1">
-                    🔄 Click or press <kbd class="px-1.5 py-0.5 bg-white border rounded text-[10px] font-mono text-slate-700">Space</kbd> to flip
-                  </span>
-                </div>
+              {/* Front (Term) */}
+              <div class="absolute w-full h-full bg-white border-2 border-[#F8C8DC] rounded-2xl shadow-xl flex flex-col justify-center items-center p-8 backface-hidden">
+                <span class="text-xs font-bold text-[#6B1D2F] uppercase tracking-wider mb-2">TERM</span>
+                <p class="text-2xl md:text-3xl font-bold text-center text-[#1B2A4A]">{card?.term}</p>
+                <span class="absolute bottom-4 text-xs text-slate-400 font-semibold">Click or Press [Spacebar] to Flip 🔄</span>
               </div>
 
-              {/* BACK OF CARD (Definition) - Deep Wine with Soft Pink Text Highlights */}
-              <div class="absolute w-full h-full bg-[#6B1D2F] text-white border-2 border-[#6B1D2F] rounded-3xl shadow-xl flex flex-col justify-between p-8 backface-hidden rotate-y-180">
-                <div class="flex justify-between items-center">
-                  <span class="text-xs font-extrabold text-[#F8C8DC] bg-[#551624] px-3 py-1 rounded-full border border-[#F8C8DC]/30 tracking-wider uppercase">
-                    DEFINITION
-                  </span>
-                  <span class="text-sm">🩷</span>
-                </div>
-
-                <div class="my-auto text-center px-4">
-                  <p class="text-xl sm:text-2xl font-medium text-white leading-relaxed">
-                    {currentCard?.definition}
-                  </p>
-                </div>
-
-                <div class="text-center">
-                  <span class="text-xs text-[#F8C8DC] font-medium">
-                    Click anywhere to return to term
-                  </span>
-                </div>
+              {/* Back (Definition) */}
+              <div class="absolute w-full h-full bg-[#6B1D2F] text-white border-2 border-[#6B1D2F] rounded-2xl shadow-xl flex flex-col justify-center items-center p-8 backface-hidden rotate-y-180">
+                <span class="text-xs font-bold text-[#F8C8DC] uppercase tracking-wider mb-2">DEFINITION</span>
+                <p class="text-xl md:text-2xl font-medium text-center">{card?.definition}</p>
               </div>
 
             </div>
           </div>
 
-          {/* Navigation Controls */}
-          <div class="flex items-center justify-between w-full mt-6 px-2 gap-3">
-            <button
-              onClick={prevCard}
-              class="flex-1 sm:flex-none px-5 py-3 bg-white text-[#1B2A4A] hover:bg-[#F8C8DC] border border-[#8A9EA7]/40 rounded-2xl font-bold shadow-sm transition flex items-center justify-center gap-2 text-sm"
+          {/* Action Buttons: Left = Still Learning, Right = Mastered */}
+          <div class="w-full grid grid-cols-2 gap-4 mt-6">
+            <button 
+              onClick={() => handleSort(false)}
+              class="py-4 bg-rose-100 border-2 border-rose-400 text-rose-800 rounded-2xl font-extrabold flex items-center justify-center gap-2 hover:bg-rose-200 transition shadow"
             >
-              <span>👈</span>
-              <span>Previous</span>
+              <span class="text-xl">❌</span> Still Learning <span class="text-xs font-normal opacity-75">(Left Arrow)</span>
             </button>
-
-            <button
-              onClick={flipCard}
-              class="px-6 py-3 bg-[#1B2A4A] hover:bg-[#121D34] text-white font-bold rounded-2xl shadow-md transition text-sm flex items-center gap-2 border border-[#F8C8DC]/40"
+            
+            <button 
+              onClick={() => handleSort(true)}
+              class="py-4 bg-emerald-100 border-2 border-emerald-400 text-emerald-800 rounded-2xl font-extrabold flex items-center justify-center gap-2 hover:bg-emerald-200 transition shadow"
             >
-              <span>🔄</span>
-              <span>Flip Card</span>
-            </button>
-
-            <button
-              onClick={nextCard}
-              class="flex-1 sm:flex-none px-5 py-3 bg-white text-[#1B2A4A] hover:bg-[#F8C8DC] border border-[#8A9EA7]/40 rounded-2xl font-bold shadow-sm transition flex items-center justify-center gap-2 text-sm"
-            >
-              <span>Next</span>
-              <span>👉</span>
+              <span class="text-xl">✅</span> Know It! <span class="text-xs font-normal opacity-75">(Right Arrow)</span>
             </button>
           </div>
-
-          {/* Keyboard Shortcut Visual Badges */}
-          <div class="mt-6 bg-white/80 backdrop-blur rounded-2xl p-3 border border-[#8A9EA7]/30 w-full flex flex-wrap justify-center gap-4 text-xs font-medium text-slate-600">
-            <div class="flex items-center gap-1.5">
-              <kbd class="px-2 py-1 bg-slate-100 border border-slate-300 rounded-md font-mono text-[11px] text-slate-800 shadow-xs">← Left</kbd>
-              <span>Previous</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <kbd class="px-2 py-1 bg-slate-100 border border-slate-300 rounded-md font-mono text-[11px] text-slate-800 shadow-xs">Spacebar</kbd>
-              <span>Flip</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <kbd class="px-2 py-1 bg-slate-100 border border-slate-300 rounded-md font-mono text-[11px] text-slate-800 shadow-xs">Right →</kbd>
-              <span>Next</span>
-            </div>
-          </div>
-
         </div>
       );
     }
 
-    function LearnView({ cards, deckTitle }) {
-      // Learn Mode States
-      const [pool, setPool] = useState([...cards]);
-      const [roundCards, setRoundCards] = useState([]);
+    /* -------------------------------------------------------------
+       2. LEARN MODE (WITH KEYBOARD SHORTCUTS 1, 2, 3, 4)
+    ------------------------------------------------------------- */
+    function LearnView({ cards }) {
       const [qIndex, setQIndex] = useState(0);
-      const [selectedChoice, setSelectedChoice] = useState(null);
-      
-      const [roundScore, setRoundScore] = useState(0);
-      const [missedInRound, setMissedInRound] = useState([]);
-      const [masteredCards, setMasteredCards] = useState([]);
+      const [selected, setSelected] = useState(null);
+      const [score, setScore] = useState(0);
+      const [options, setOptions] = useState([]);
 
-      // Status: 'answering' | 'round-summary' | 'complete'
-      const [status, setStatus] = useState('answering');
-      const [choices, setChoices] = useState([]);
+      const currentCard = cards[qIndex];
 
-      const ROUND_SIZE = 5;
-
-      // Start a new round from the current pool
-      const startRound = (sourcePool) => {
-        const nextRoundCards = sourcePool.slice(0, ROUND_SIZE);
-        setRoundCards(nextRoundCards);
-        setQIndex(0);
-        setSelectedChoice(null);
-        setRoundScore(0);
-        setMissedInRound([]);
-        setStatus('answering');
-      };
-
-      // Reset / initialize Learn Mode
-      useEffect(() => {
-        setPool([...cards]);
-        setMasteredCards([]);
-        startRound([...cards]);
-      }, [cards]);
-
-      const currentCard = roundCards[qIndex];
-
-      // Generate Multiple Choice Options whenever question changes
+      // Shuffle options on question change
       useEffect(() => {
         if (!currentCard) return;
-
-        const options = [currentCard.definition];
-        const otherCards = cards.filter(c => c.id !== currentCard.id);
-        const shuffled = [...otherCards].sort(() => 0.5 - Math.random());
-
-        for (let i = 0; i < Math.min(3, shuffled.length); i++) {
-          options.push(shuffled[i].definition);
+        const choices = [currentCard.definition];
+        const others = cards.filter(c => c.id !== currentCard.id).sort(() => 0.5 - Math.random());
+        for (let i = 0; i < Math.min(3, others.length); i++) {
+          choices.push(others[i].definition);
         }
+        setOptions(choices.sort(() => 0.5 - Math.random()));
+        setSelected(null);
+      }, [qIndex, cards]);
 
-        setChoices(options.sort(() => 0.5 - Math.random()));
-        setSelectedChoice(null);
-      }, [qIndex, roundCards]);
-
-      const handleSelectOption = (choice) => {
-        if (selectedChoice !== null) return; // Prevent changing after selected
-        setSelectedChoice(choice);
-
-        const isCorrect = choice === currentCard.definition;
-        if (isCorrect) {
-          setRoundScore(prev => prev + 1);
-          setMasteredCards(prev => [...prev, currentCard.id]);
-        } else {
-          setMissedInRound(prev => [...prev, currentCard]);
-        }
-      };
-
-      const handleNextQuestion = () => {
-        if (qIndex + 1 < roundCards.length) {
-          setQIndex(prev => prev + 1);
-        } else {
-          // Round Finished! Check status
-          setStatus('round-summary');
-        }
-      };
-
-      const handleContinueNextRound = () => {
-        // Remove mastered cards from remaining pool
-        const updatedPool = pool.filter(c => !masteredCards.includes(c.id));
-        
-        if (updatedPool.length === 0) {
-          setStatus('complete');
-        } else {
-          setPool(updatedPool);
-          startRound(updatedPool);
-        }
-      };
-
-      const handlePracticeMissedOnly = () => {
-        if (missedInRound.length === 0) return;
-        setPool(missedInRound);
-        startRound(missedInRound);
-      };
-
-      const handleRestartAll = () => {
-        setPool([...cards]);
-        setMasteredCards([]);
-        startRound([...cards]);
-      };
-
-      // COMPLETE SCREEN (Entire Deck Mastered)
-      if (status === 'complete' || (masteredCards.length >= cards.length && status === 'round-summary' && missedInRound.length === 0)) {
-        return (
-          <div class="max-w-lg mx-auto bg-white rounded-3xl p-8 border-2 border-[#F8C8DC] shadow-xl text-center my-auto">
-            <div class="text-5xl mb-4">🏆 🎉 ✨</div>
-            <h2 class="text-3xl font-extrabold font-heading text-[#6B1D2F] mb-2">Set Mastered!</h2>
-            <p class="text-slate-600 text-sm mb-6">
-              Congratulations! You answered every card correctly in <span class="font-bold text-[#1B2A4A]">"{deckTitle}"</span>.
-            </p>
-
-            <div class="bg-[#EDF4F9] rounded-2xl p-4 mb-6 flex justify-around">
-              <div>
-                <div class="text-2xl font-bold text-[#6B1D2F]">{cards.length}</div>
-                <div class="text-xs font-bold text-slate-500 uppercase">Total Cards</div>
-              </div>
-              <div class="border-r border-slate-300"></div>
-              <div>
-                <div class="text-2xl font-bold text-emerald-600">100%</div>
-                <div class="text-xs font-bold text-slate-500 uppercase">Mastery Score</div>
-              </div>
-            </div>
-
-            <button
-              onClick={handleRestartAll}
-              class="w-full py-3.5 bg-[#6B1D2F] text-white font-bold rounded-2xl shadow-md hover:bg-[#551624] transition"
-            >
-              🔄 Study This Set Again
-            </button>
-          </div>
-        );
-      }
-
-      // ROUND PAUSE / INTERMISSION SUMMARY SCREEN
-      if (status === 'round-summary') {
-        const accuracyPct = Math.round((roundScore / roundCards.length) * 100) || 0;
-
-        return (
-          <div class="max-w-xl mx-auto bg-white rounded-3xl p-6 sm:p-8 border-2 border-[#8A9EA7]/40 shadow-xl my-auto">
-            <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-              <div class="flex items-center gap-2">
-                <span class="text-2xl">☕</span>
-                <h3 class="text-2xl font-bold font-heading text-[#1B2A4A]">Round Complete!</h3>
-              </div>
-              <span class="text-xs bg-[#F8C8DC] text-[#6B1D2F] font-bold px-3 py-1 rounded-full">
-                Pause & Review
-              </span>
-            </div>
-
-            <p class="text-slate-600 text-sm mb-6">
-              Nice work! Here is your breakdown for this round:
-            </p>
-
-            {/* Score Cards Grid */}
-            <div class="grid grid-cols-2 gap-4 mb-6">
-              <div class="bg-[#FDF2F7] p-4 rounded-2xl border border-[#F8C8DC] text-center">
-                <span class="text-3xl font-extrabold text-[#6B1D2F] font-heading">{roundScore} / {roundCards.length}</span>
-                <p class="text-xs font-bold text-slate-600 uppercase mt-1">Correct Answers</p>
-              </div>
-              <div class="bg-[#EDF4F9] p-4 rounded-2xl border border-[#8A9EA7]/30 text-center">
-                <span class="text-3xl font-extrabold text-[#1B2A4A] font-heading">{accuracyPct}%</span>
-                <p class="text-xs font-bold text-slate-600 uppercase mt-1">Accuracy</p>
-              </div>
-            </div>
-
-            {/* Missed Cards List */}
-            {missedInRound.length > 0 ? (
-              <div class="mb-6">
-                <h4 class="text-xs font-bold text-[#6B1D2F] uppercase tracking-wider mb-2 flex items-center gap-1">
-                  <span>⚠️</span> Cards to Review ({missedInRound.length})
-                </h4>
-                <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {missedInRound.map(m => (
-                    <div key={m.id} class="bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs">
-                      <div class="font-bold text-rose-900">{m.term}</div>
-                      <div class="text-rose-700 mt-0.5">{m.definition}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div class="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl p-4 text-center text-sm font-semibold">
-                🎉 Perfect round! You missed 0 cards in this round!
-              </div>
-            )}
-
-            {/* Actions */}
-            <div class="flex flex-col sm:flex-row gap-3">
-              {missedInRound.length > 0 && (
-                <button
-                  onClick={handlePracticeMissedOnly}
-                  class="flex-1 py-3 bg-[#F8C8DC] text-[#6B1D2F] font-bold rounded-xl hover:bg-white border border-[#F8C8DC] transition text-sm shadow-xs"
-                >
-                  🎯 Practice Missed Cards ({missedInRound.length})
-                </button>
-              )}
-              <button
-                onClick={handleContinueNextRound}
-                class="flex-1 py-3 bg-[#6B1D2F] text-white font-bold rounded-xl shadow-md hover:bg-[#551624] transition text-sm"
-              >
-                Continue Next Round 👉
-              </button>
-            </div>
-          </div>
-        );
-      }
-
-      // ACTIVE QUESTION SCREEN
-      return (
-        <div class="max-w-xl mx-auto w-full my-auto">
-          
-          {/* Header Progress */}
-          <div class="flex justify-between items-center mb-4 px-1">
-            <span class="text-xs font-bold text-[#1B2A4A] bg-white px-3 py-1 rounded-full border border-[#8A9EA7]/30 shadow-xs">
-              Round Question {qIndex + 1} of {roundCards.length}
-            </span>
-            <span class="text-xs font-bold text-[#6B1D2F] bg-[#FDF2F7] px-3 py-1 rounded-full border border-[#F8C8DC]">
-              Mastered: {masteredCards.length} / {cards.length}
-            </span>
-          </div>
-
-          {/* Question Card */}
-          <div class="bg-white rounded-3xl p-6 sm:p-8 border-2 border-[#8A9EA7]/30 shadow-md mb-6">
-            <span class="text-xs font-extrabold text-[#8A9EA7] uppercase tracking-wider">
-              SELECT THE CORRECT DEFINITION
-            </span>
-            <h3 class="text-2xl sm:text-3xl font-bold font-heading text-[#1B2A4A] mt-2 mb-6">
-              {currentCard?.term}
-            </h3>
-
-            {/* Answer Options */}
-            <div class="space-y-3">
-              {choices.map((choice, idx) => {
-                let btnStyle = "bg-[#EDF4F9] border-slate-200 text-slate-800 hover:border-[#6B1D2F] hover:bg-white";
-                
-                if (selectedChoice !== null) {
-                  if (choice === currentCard.definition) {
-                    btnStyle = "bg-emerald-100 border-emerald-500 text-emerald-900 font-bold shadow-sm";
-                  } else if (choice === selectedChoice) {
-                    btnStyle = "bg-rose-100 border-rose-400 text-rose-900 font-bold";
-                  } else {
-                    btnStyle = "bg-slate-50 border-slate-200 text-slate-400 opacity-60";
-                  }
-                }
-
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => handleSelectOption(choice)}
-                    disabled={selectedChoice !== null}
-                    class={`w-full text-left p-4 rounded-2xl border-2 transition-all text-sm sm:text-base flex justify-between items-center ${btnStyle}`}
-                  >
-                    <span>{choice}</span>
-                    {selectedChoice !== null && choice === currentCard.definition && <span>✅</span>}
-                    {selectedChoice !== null && choice === selectedChoice && choice !== currentCard.definition && <span>❌</span>}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Next Button */}
-            {selectedChoice !== null && (
-              <button
-                onClick={handleNextQuestion}
-                class="mt-6 w-full py-3.5 bg-[#6B1D2F] text-white font-bold rounded-2xl shadow-md hover:bg-[#551624] transition text-sm flex items-center justify-center gap-2"
-              >
-                <span>Continue</span>
-                <span>👉</span>
-              </button>
-            )}
-          </div>
-
-        </div>
-      );
-    }
-
-    function MatchView({ cards }) {
-      const [gameItems, setGameItems] = useState([]);
-      const [selectedTiles, setSelectedTiles] = useState([]);
-      const [matchedCardIds, setMatchedCardIds] = useState([]);
-      const [timer, setTimer] = useState(0);
-      const [isPlaying, setIsPlaying] = useState(false);
-      const [bestTime, setBestTime] = useState(null);
-
-      // Start / Reset Match Game
-      const startMatchGame = () => {
-        // Select up to 6 cards for matching
-        const sample = [...cards].sort(() => 0.5 - Math.random()).slice(0, 6);
-        const tiles = [];
-
-        sample.forEach(c => {
-          tiles.push({ id: c.id + '-term', cardId: c.id, text: c.term, type: 'term' });
-          tiles.push({ id: c.id + '-def', cardId: c.id, text: c.definition, type: 'def' });
-        });
-
-        setGameItems(tiles.sort(() => 0.5 - Math.random()));
-        setSelectedTiles([]);
-        setMatchedCardIds([]);
-        setTimer(0);
-        setIsPlaying(true);
-      };
-
-      // Timer Interval
+      // Handle Keyboard Shortcuts [1, 2, 3, 4] and [Space/Enter]
       useEffect(() => {
-        let interval;
-        if (isPlaying && matchedCardIds.length < gameItems.length / 2) {
-          interval = setInterval(() => setTimer(t => t + 1), 1000);
-        } else if (isPlaying && gameItems.length > 0 && matchedCardIds.length === gameItems.length / 2) {
-          // Finished Game!
-          if (bestTime === null || timer < bestTime) {
-            setBestTime(timer);
-          }
-        }
-        return () => clearInterval(interval);
-      }, [isPlaying, matchedCardIds, gameItems, timer]);
-
-      const handleTileClick = (item) => {
-        if (!isPlaying) return;
-        if (selectedTiles.length === 2 || matchedCardIds.includes(item.cardId)) return;
-        if (selectedTiles.some(s => s.id === item.id)) return;
-
-        const newSelected = [...selectedTiles, item];
-        setSelectedTiles(newSelected);
-
-        if (newSelected.length === 2) {
-          // Check match
-          if (newSelected[0].cardId === newSelected[1].cardId && newSelected[0].type !== newSelected[1].type) {
-            // MATCH!
-            setMatchedCardIds(prev => [...prev, newSelected[0].cardId]);
-            setSelectedTiles([]);
+        const handleKeyDown = (e) => {
+          if (!selected) {
+            if (['1', '2', '3', '4'].includes(e.key)) {
+              const idx = parseInt(e.key) - 1;
+              if (options[idx]) handleSelect(options[idx]);
+            }
           } else {
-            // NO MATCH - Delay clear
-            setTimeout(() => {
-              setSelectedTiles([]);
-            }, 700);
+            if (e.code === 'Space' || e.code === 'Enter') {
+              e.preventDefault();
+              handleNext();
+            }
           }
-        }
-      };
-
-      const isGameFinished = isPlaying && gameItems.length > 0 && matchedCardIds.length === gameItems.length / 2;
-
-      return (
-        <div class="max-w-4xl mx-auto w-full my-auto">
-          
-          {!isPlaying ? (
-            <div class="bg-white rounded-3xl p-8 sm:p-12 border-2 border-[#8A9EA7]/40 shadow-xl text-center max-w-lg mx-auto">
-              <div class="text-5xl mb-4">⏱️ ✨</div>
-              <h2 class="text-3xl font-extrabold font-heading text-[#1B2A4A] mb-2">Match Speed Game</h2>
-              <p class="text-slate-600 text-sm mb-6">
-                Clear the board by matching all terms with their definitions as fast as possible!
-              </p>
-
-              <button
-                onClick={startMatchGame}
-                class="px-8 py-3.5 bg-[#6B1D2F] text-white font-bold rounded-2xl shadow-lg hover:bg-[#551624] transition text-base"
-              >
-                🚀 Start Game
-              </button>
-            </div>
-          ) : (
-            <div>
-              {/* Game Header Timer Bar */}
-              <div class="flex justify-between items-center mb-4 bg-white px-5 py-3 rounded-2xl border border-[#8A9EA7]/30 shadow-xs">
-                <div class="flex items-center gap-2">
-                  <span class="text-sm">⏱️</span>
-                  <span class="text-base font-extrabold text-[#6B1D2F] font-heading">{timer}s</span>
-                </div>
-
-                {bestTime !== null && (
-                  <div class="text-xs font-bold text-slate-500">
-                    🏆 Best: <span class="text-[#1B2A4A]">{bestTime}s</span>
-                  </div>
-                )}
-
-                <button
-                  onClick={startMatchGame}
-                  class="text-xs font-bold text-[#1B2A4A] bg-[#EDF4F9] px-3 py-1.5 rounded-xl hover:bg-[#F8C8DC] transition"
-                >
-                  Restart Game 🔄
-                </button>
-              </div>
-
-              {/* Game Finished Screen */}
-              {isGameFinished ? (
-                <div class="bg-white rounded-3xl p-10 border-2 border-[#F8C8DC] shadow-2xl text-center max-w-md mx-auto my-6">
-                  <div class="text-5xl mb-3">🎉 ⚡</div>
-                  <h3 class="text-2xl font-extrabold font-heading text-[#6B1D2F] mb-1">Board Cleared!</h3>
-                  <p class="text-slate-600 text-sm mb-4">
-                    You matched all pairs in <span class="font-bold text-[#1B2A4A] text-lg">{timer} seconds</span>!
-                  </p>
-                  <button
-                    onClick={startMatchGame}
-                    class="w-full py-3 bg-[#6B1D2F] text-white font-bold rounded-2xl shadow-md hover:bg-[#551624] transition text-sm"
-                  >
-                    Play Again 🔄
-                  </button>
-                </div>
-              ) : (
-                /* High-Contrast Match Grid Container (Deep Navy Background) */
-                <div class="bg-[#1B2A4A] p-4 sm:p-6 rounded-3xl shadow-xl border-4 border-[#F8C8DC]">
-                  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
-                    {gameItems.map(item => {
-                      const isMatched = matchedCardIds.includes(item.cardId);
-                      const isSelected = selectedTiles.some(s => s.id === item.id);
-
-                      if (isMatched) {
-                        return (
-                          <div 
-                            key={item.id} 
-                            class="h-28 sm:h-32 rounded-2xl border-2 border-dashed border-[#8A9EA7]/20 flex items-center justify-center opacity-30"
-                          >
-                            <span class="text-xl text-emerald-400">✅</span>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => handleTileClick(item)}
-                          class={`h-28 sm:h-32 p-3 sm:p-4 rounded-2xl font-semibold text-xs sm:text-sm flex items-center justify-center text-center transition-all duration-200 shadow-md ${
-                            isSelected
-                              ? 'bg-[#6B1D2F] text-white border-2 border-[#F8C8DC] scale-105 shadow-xl ring-2 ring-[#F8C8DC]'
-                              : 'bg-[#F8C8DC] text-[#1B2A4A] border-2 border-white hover:bg-white hover:scale-102'
-                          }`}
-                        >
-                          {item.text}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-        </div>
-      );
-    }
-
-    function EditDeckView({ deck, onUpdateDeck, onDeleteDeck }) {
-      const [title, setTitle] = useState(deck.title);
-      const [description, setDescription] = useState(deck.description);
-      const [term, setTerm] = useState('');
-      const [definition, setDefinition] = useState('');
-
-      // Keep form synced when active deck changes
-      useEffect(() => {
-        setTitle(deck.title);
-        setDescription(deck.description);
-      }, [deck]);
-
-      const handleSaveMeta = (e) => {
-        e.preventDefault();
-        onUpdateDeck({ ...deck, title, description });
-      };
-
-      const handleAddCard = (e) => {
-        e.preventDefault();
-        if (!term.trim() || !definition.trim()) return;
-
-        const newCard = {
-          id: 'card-' + Date.now(),
-          term: term.trim(),
-          definition: definition.trim()
         };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+      }, [selected, options, qIndex]);
 
-        onUpdateDeck({
-          ...deck,
-          cards: [...deck.cards, newCard]
-        });
-
-        setTerm('');
-        setDefinition('');
+      const handleSelect = (choice) => {
+        if (selected) return;
+        setSelected(choice);
+        if (choice === currentCard.definition) setScore(score + 1);
       };
 
-      const handleDeleteCard = (cardId) => {
-        onUpdateDeck({
-          ...deck,
-          cards: deck.cards.filter(c => c.id !== cardId)
-        });
+      const handleNext = () => {
+        setQIndex((prev) => (prev + 1) % cards.length);
       };
 
       return (
-        <div class="space-y-6 max-w-3xl mx-auto w-full">
-          
-          {/* Deck Metadata Editor */}
-          <form onSubmit={handleSaveMeta} class="bg-white rounded-3xl p-6 border-2 border-[#8A9EA7]/30 shadow-sm">
-            <h3 class="text-lg font-bold font-heading text-[#1B2A4A] mb-4 flex items-center gap-2">
-              <span>✏️</span> Edit Study Set Info
-            </h3>
-
-            <div class="space-y-4">
-              <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Set Title</label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  class="w-full p-3 rounded-xl border border-slate-300 focus:outline-none focus:border-[#6B1D2F] font-semibold text-slate-800"
-                  required
-                />
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Description</label>
-                <input
-                  type="text"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  class="w-full p-3 rounded-xl border border-slate-300 focus:outline-none focus:border-[#6B1D2F] text-slate-700 text-sm"
-                />
-              </div>
-
-              <div class="flex justify-between items-center pt-2">
-                <button
-                  type="button"
-                  onClick={() => onDeleteDeck(deck.id)}
-                  class="text-xs text-rose-600 hover:text-rose-800 font-bold px-2 py-1"
-                >
-                  🗑️ Delete Entire Set
-                </button>
-
-                <button
-                  type="submit"
-                  class="px-5 py-2 bg-[#1B2A4A] text-white text-xs font-bold rounded-xl hover:bg-[#121D34] transition shadow-xs"
-                >
-                  Save Info
-                </button>
-              </div>
-            </div>
-          </form>
-
-          {/* Add New Card Form */}
-          <form onSubmit={handleAddCard} class="bg-white rounded-3xl p-6 border-2 border-[#F8C8DC] shadow-md">
-            <h3 class="text-lg font-bold font-heading text-[#6B1D2F] mb-4 flex items-center gap-2">
-              <span>✨</span> Add New Card
-            </h3>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Term</label>
-                <input
-                  type="text"
-                  placeholder="e.g., Founding Date"
-                  value={term}
-                  onChange={(e) => setTerm(e.target.value)}
-                  class="w-full p-3 rounded-xl border border-slate-300 focus:outline-none focus:border-[#6B1D2F] text-sm"
-                  required
-                />
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Definition</label>
-                <input
-                  type="text"
-                  placeholder="e.g., April 28, 1867"
-                  value={definition}
-                  onChange={(e) => setDefinition(e.target.value)}
-                  class="w-full p-3 rounded-xl border border-slate-300 focus:outline-none focus:border-[#6B1D2F] text-sm"
-                  required
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              class="w-full py-3 bg-[#6B1D2F] text-white font-bold rounded-xl shadow-md hover:bg-[#551624] transition text-sm flex items-center justify-center gap-2"
-            >
-              <span>+ Add Card to Set</span>
-            </button>
-          </form>
-
-          {/* Existing Cards List */}
-          <div class="bg-white rounded-3xl p-6 border-2 border-[#8A9EA7]/30 shadow-sm">
-            <h3 class="text-lg font-bold font-heading text-[#1B2A4A] mb-4 flex items-center justify-between">
-              <span>Cards in this Set ({deck.cards.length})</span>
-            </h3>
-
-            {deck.cards.length === 0 ? (
-              <p class="text-sm text-slate-400 text-center py-6">No cards added yet.</p>
-            ) : (
-              <div class="divide-y divide-slate-100">
-                {deck.cards.map((c, idx) => (
-                  <div key={c.id} class="py-3.5 flex items-center justify-between text-sm gap-4">
-                    <span class="text-xs font-bold text-[#8A9EA7] w-6">#{idx + 1}</span>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1">
-                      <span class="font-bold text-[#1B2A4A]">{c.term}</span>
-                      <span class="text-slate-600">{c.definition}</span>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteCard(c.id)}
-                      class="text-rose-500 hover:text-rose-700 p-1 rounded-lg hover:bg-rose-50 transition"
-                      title="Delete card"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-        </div>
-      );
-    }
-
-    function ManageDecksView({ decks, activeDeckId, onSelectDeck, onCreateDeck, onDeleteDeck }) {
-      const [showModal, setShowModal] = useState(false);
-      const [newTitle, setNewTitle] = useState('');
-      const [newDesc, setNewDesc] = useState('');
-
-      const handleCreate = (e) => {
-        e.preventDefault();
-        if (!newTitle.trim()) return;
-        onCreateDeck(newTitle.trim(), newDesc.trim());
-        setNewTitle('');
-        setNewDesc('');
-        setShowModal(false);
-      };
-
-      return (
-        <div class="max-w-4xl mx-auto w-full my-4">
+        <div class="bg-white p-6 md:p-8 rounded-2xl border-2 border-[#F8C8DC] shadow-xl max-w-2xl mx-auto w-full">
           <div class="flex justify-between items-center mb-6">
-            <div>
-              <h2 class="text-2xl font-bold font-heading text-[#1B2A4A]">Your Study Sets</h2>
-              <p class="text-xs sm:text-sm text-slate-600">Select a set to study, edit cards, or create a brand new set.</p>
-            </div>
-
-            <button
-              onClick={() => setShowModal(true)}
-              class="px-5 py-3 bg-[#6B1D2F] text-white font-bold rounded-2xl shadow-md hover:bg-[#551624] transition text-xs sm:text-sm flex items-center gap-2"
-            >
-              <span>+ Create New Set</span>
-            </button>
+            <span class="text-xs font-bold text-[#1B2A4A] bg-[#EDF4F9] px-3 py-1 rounded-full">
+              Question {qIndex + 1} of {cards.length}
+            </span>
+            <span class="text-xs font-bold bg-[#F8C8DC] text-[#6B1D2F] px-3 py-1 rounded-full">
+              Score: {score}
+            </span>
           </div>
 
-          {/* Grid of Decks */}
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {decks.map(d => {
-              const isActive = d.id === activeDeckId;
+          <h3 class="text-2xl font-extrabold text-[#1B2A4A] mb-6">{currentCard?.term}</h3>
 
-              return (
-                <div
-                  key={d.id}
-                  class={`bg-white rounded-3xl p-6 border-2 transition-all shadow-sm flex flex-col justify-between ${
-                    isActive ? 'border-[#6B1D2F] ring-2 ring-[#F8C8DC]' : 'border-[#8A9EA7]/30 hover:border-[#8A9EA7]'
-                  }`}
-                >
-                  <div>
-                    <div class="flex justify-between items-start mb-2">
-                      <span class={`text-xs font-bold px-3 py-0.5 rounded-full ${
-                        isActive ? 'bg-[#6B1D2F] text-white' : 'bg-[#EDF4F9] text-[#1B2A4A]'
-                      }`}>
-                        {isActive ? 'Active Set' : `${d.cards.length} Cards`}
-                      </span>
-
-                      {decks.length > 1 && (
-                        <button
-                          onClick={() => onDeleteDeck(d.id)}
-                          class="text-xs text-slate-400 hover:text-rose-600 font-bold"
-                          title="Delete deck"
-                        >
-                          🗑️
-                        </button>
-                      )}
-                    </div>
-
-                    <h3 class="text-xl font-bold font-heading text-[#1B2A4A] mb-1">{d.title}</h3>
-                    <p class="text-xs text-slate-600 mb-4 line-clamp-2">{d.description}</p>
-                  </div>
-
-                  <button
-                    onClick={() => onSelectDeck(d.id)}
-                    class={`w-full py-2.5 rounded-xl font-bold text-xs transition ${
-                      isActive
-                        ? 'bg-[#1B2A4A] text-white hover:bg-[#121D34]'
-                        : 'bg-[#F8C8DC] text-[#6B1D2F] hover:bg-white border border-[#F8C8DC]'
-                    }`}
-                  >
-                    {isActive ? 'Currently Studying 👉' : 'Study This Set'}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Modal for New Deck */}
-          {showModal && (
-            <div class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-              <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border-2 border-[#F8C8DC] shadow-2xl">
-                <h3 class="text-xl font-bold font-heading text-[#6B1D2F] mb-4">Create New Study Set</h3>
-                
-                <form onSubmit={handleCreate} class="space-y-4">
-                  <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1">Set Title</label>
-                    <input
-                      type="text"
-                      placeholder="e.g., Organic Chemistry Exam 2"
-                      value={newTitle}
-                      onChange={(e) => setNewTitle(e.target.value)}
-                      class="w-full p-3 rounded-xl border border-slate-300 focus:outline-none focus:border-[#6B1D2F] text-sm"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1">Description (Optional)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g., Functional groups and reaction mechanisms"
-                      value={newDesc}
-                      onChange={(e) => setNewDesc(e.target.value)}
-                      class="w-full p-3 rounded-xl border border-slate-300 focus:outline-none focus:border-[#6B1D2F] text-sm"
-                    />
-                  </div>
-
-                  <div class="flex gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowModal(false)}
-                      class="flex-1 py-2.5 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 transition"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      class="flex-1 py-2.5 bg-[#6B1D2F] text-white font-bold text-xs rounded-xl shadow-md hover:bg-[#551624] transition"
-                    >
-                      Create Set
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-
-        </div>
-      );
-    }
-
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-  </script>
-</body>
-</html>
+          <div class="space-y-3">
+            {options.map((opt, idx) => {
+              let btnStyle = "bg-slate-50 border-slate-200 text-
