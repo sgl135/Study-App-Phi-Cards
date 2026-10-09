@@ -4,21 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Phi Cards - Study Smarter</title>
-  <!-- Tailwind CSS CDN -->
+  
+  <!-- Fast, Reliable CDNs for Tailwind CSS, React, ReactDOM, and Babel -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- React & Babel CDNs -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js" crossorigin></script>
 
   <style>
-    /* Custom Color Theme Variables */
+    /* Custom Pi Phi Color Palette */
     :root {
       --color-wine: #6B1D2F;
-      --color-wine-dark: #4A121F;
       --color-navy: #1B2A4A;
       --color-pink: #F8C8DC;
-      --color-pink-light: #FDF2F7;
       --color-bg-blue: #EDF4F9;
     }
 
@@ -28,7 +26,7 @@
     .backface-hidden { backface-visibility: hidden; }
     .rotate-y-180 { transform: rotateY(180deg); }
 
-    /* Print Styles for Study Guide */
+    /* Print Styles for Printable Study Guides */
     @media print {
       header, .no-print { display: none !important; }
       body { background: white !important; color: black !important; }
@@ -36,14 +34,14 @@
     }
   </style>
 </head>
-<body class="bg-[#EDF4F9] text-[#1B2A4A] min-h-screen font-sans">
+<body class="bg-[#EDF4F9] text-[#1B2A4A] min-h-screen font-sans selection:bg-[#F8C8DC]">
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
+    const { useState, useEffect } = React;
 
-    // Initial Starter Decks
-    const INITIAL_DECKS = [
+    // Default Starter Decks
+    const DEFAULT_DECKS = [
       {
         id: 'piphi-heritage',
         title: 'Pi Phi Heritage & History',
@@ -70,33 +68,49 @@
       }
     ];
 
+    // Safe LocalStorage Loader with Fallback
+    const loadSavedDecks = () => {
+      try {
+        const saved = localStorage.getItem('phicards_decks_v4');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {
+        console.error("Storage error, resetting to default decks:", e);
+      }
+      return DEFAULT_DECKS;
+    };
+
     function App() {
-      const [decks, setDecks] = useState(() => {
-        const saved = localStorage.getItem('phicards_decks_v2');
-        return saved ? JSON.parse(saved) : INITIAL_DECKS;
-      });
+      const [decks, setDecks] = useState(loadSavedDecks);
+      const [activeDeckId, setActiveDeckId] = useState(() => decks[0]?.id || DEFAULT_DECKS[0].id);
+      const [activeMode, setActiveMode] = useState('flashcards');
 
-      const [activeDeckId, setActiveDeckId] = useState(() => decks[0]?.id || '');
-      const [activeMode, setActiveMode] = useState('flashcards'); // flashcards, learn, test, match, guide, edit
-
-      // Sync decks to local storage
+      // Persist to local storage
       useEffect(() => {
-        localStorage.setItem('phicards_decks_v2', JSON.stringify(decks));
+        try {
+          localStorage.setItem('phicards_decks_v4', JSON.stringify(decks));
+        } catch (e) {
+          console.error("Failed to save decks:", e);
+        }
       }, [decks]);
 
-      const activeDeck = decks.find(d => d.id === activeDeckId) || decks[0];
+      // Safely find active deck
+      const activeDeck = decks.find(d => d && d.id === activeDeckId) || decks[0] || DEFAULT_DECKS[0];
+      const safeCards = Array.isArray(activeDeck?.cards) ? activeDeck.cards : [];
 
-      // Deck Management Handlers
       const handleCreateDeck = () => {
         const title = prompt('Enter Set / Deck Name:');
-        if (!title) return;
+        if (!title || !title.trim()) return;
         const newDeck = {
           id: 'deck-' + Date.now(),
-          title,
+          title: title.trim(),
           description: 'Custom Study Set',
           cards: []
         };
-        setDecks([...decks, newDeck]);
+        const updated = [...decks, newDeck];
+        setDecks(updated);
         setActiveDeckId(newDeck.id);
         setActiveMode('edit');
       };
@@ -117,13 +131,21 @@
         setDecks(decks.map(d => d.id === activeDeck.id ? { ...d, cards: newCards } : d));
       };
 
+      const handleResetData = () => {
+        if (confirm('Reset all app data to default sets?')) {
+          localStorage.removeItem('phicards_decks_v4');
+          setDecks(DEFAULT_DECKS);
+          setActiveDeckId(DEFAULT_DECKS[0].id);
+        }
+      };
+
       return (
         <div class="min-h-screen flex flex-col">
-          {/* Main Top Header */}
+          {/* Header */}
           <header class="bg-[#6B1D2F] text-white shadow-lg sticky top-0 z-50">
             <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
               
-              {/* Logo / Branding */}
+              {/* Logo */}
               <div class="flex items-center gap-3">
                 <div class="bg-[#F8C8DC] text-[#6B1D2F] p-2 rounded-xl text-xl shadow-inner font-bold">🏹</div>
                 <div>
@@ -132,7 +154,7 @@
                 </div>
               </div>
 
-              {/* Set Switcher Dropdown */}
+              {/* Set Switcher & Controls */}
               <div class="flex items-center gap-2">
                 <select 
                   value={activeDeckId}
@@ -140,7 +162,7 @@
                   class="bg-[#1B2A4A] text-white px-3 py-2 rounded-lg border border-[#F8C8DC]/30 text-sm font-semibold focus:outline-none"
                 >
                   {decks.map(d => (
-                    <option key={d.id} value={d.id}>{d.title} ({d.cards.length} cards)</option>
+                    <option key={d.id} value={d.id}>{d.title} ({d.cards?.length || 0} cards)</option>
                   ))}
                 </select>
                 <button 
@@ -152,7 +174,7 @@
               </div>
             </div>
 
-            {/* Navigation Tabs Bar */}
+            {/* Navigation Tabs */}
             <div class="bg-[#1B2A4A] border-t border-[#6B1D2F]/40 px-4 py-2">
               <div class="max-w-6xl mx-auto flex flex-wrap gap-2 text-xs md:text-sm font-semibold">
                 {[
@@ -179,12 +201,12 @@
             </div>
           </header>
 
-          {/* Main Workspace Area */}
+          {/* Main Body Area */}
           <main class="flex-1 max-w-5xl w-full mx-auto p-4 md:p-6 flex flex-col justify-center">
-            {activeDeck.cards.length === 0 && activeMode !== 'edit' ? (
+            {safeCards.length === 0 && activeMode !== 'edit' ? (
               <div class="bg-white p-8 rounded-2xl text-center border-2 border-[#F8C8DC] shadow-md my-auto">
                 <h2 class="text-xl font-bold text-[#6B1D2F] mb-2">This study set is empty!</h2>
-                <p class="text-slate-600 mb-6">Add cards to this set before starting study modes.</p>
+                <p class="text-slate-600 mb-6">Add cards to this set before launching study modes.</p>
                 <button 
                   onClick={() => setActiveMode('edit')}
                   class="px-6 py-2 bg-[#1B2A4A] text-white font-bold rounded-xl hover:bg-[#6B1D2F] transition"
@@ -194,11 +216,11 @@
               </div>
             ) : (
               <>
-                {activeMode === 'flashcards' && <FlashcardsView cards={activeDeck.cards} />}
-                {activeMode === 'learn' && <LearnView cards={activeDeck.cards} />}
-                {activeMode === 'test' && <TestView cards={activeDeck.cards} deckTitle={activeDeck.title} />}
-                {activeMode === 'match' && <MatchView cards={activeDeck.cards} />}
-                {activeMode === 'guide' && <StudyGuideView cards={activeDeck.cards} title={activeDeck.title} />}
+                {activeMode === 'flashcards' && <FlashcardsView cards={safeCards} />}
+                {activeMode === 'learn' && <LearnView cards={safeCards} />}
+                {activeMode === 'test' && <TestView cards={safeCards} deckTitle={activeDeck.title} />}
+                {activeMode === 'match' && <MatchView cards={safeCards} />}
+                {activeMode === 'guide' && <StudyGuideView cards={safeCards} title={activeDeck.title} />}
                 {activeMode === 'edit' && (
                   <EditDeckView 
                     deck={activeDeck} 
@@ -209,12 +231,17 @@
               </>
             )}
           </main>
+
+          {/* Footer */}
+          <footer class="py-3 text-center text-xs text-slate-500 border-t border-slate-200 mt-auto no-print">
+            Phi Cards &bull; <button onClick={handleResetData} class="underline hover:text-[#6B1D2F]">Reset App Data</button>
+          </footer>
         </div>
       );
     }
 
     /* -------------------------------------------------------------
-       1. FLASHCARDS MODE (WITH KNOW/STILL LEARNING SORTING)
+       1. FLASHCARDS MODE (KNOW vs. STILL LEARNING SORTING)
     ------------------------------------------------------------- */
     function FlashcardsView({ cards }) {
       const [currentIndex, setCurrentIndex] = useState(0);
@@ -223,23 +250,23 @@
       const [learningIds, setLearningIds] = useState([]);
       const [filterMissedOnly, setFilterMissedOnly] = useState(false);
 
-      // Filter active deck list if user chooses "Review Missed Only"
       const activeList = filterMissedOnly 
         ? cards.filter(c => learningIds.includes(c.id)) 
         : cards;
 
       const card = activeList[currentIndex] || activeList[0];
 
-      // Handle Keyboard Controls (Space = Flip, Left = Still Learning, Right = Mastered)
+      // Keyboard Controls: Space = Flip, Left = Still Learning, Right = Mastered
       useEffect(() => {
         const handleKeyDown = (e) => {
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
           if (e.code === 'Space') {
             e.preventDefault();
             setIsFlipped(prev => !prev);
           } else if (e.code === 'ArrowLeft') {
-            handleSort(false); // Still Learning
+            handleSort(false);
           } else if (e.code === 'ArrowRight') {
-            handleSort(true); // Mastered
+            handleSort(true);
           }
         };
         window.addEventListener('keydown', handleKeyDown);
@@ -251,16 +278,14 @@
         setIsFlipped(false);
 
         if (isMastered) {
-          if (!masteredIds.includes(card.id)) setMasteredIds([...masteredIds, card.id]);
-          setLearningIds(learningIds.filter(id => id !== card.id));
+          if (!masteredIds.includes(card.id)) setMasteredIds(prev => [...prev, card.id]);
+          setLearningIds(prev => prev.filter(id => id !== card.id));
         } else {
-          if (!learningIds.includes(card.id)) setLearningIds([...learningIds, card.id]);
-          setMasteredIds(masteredIds.filter(id => id !== card.id));
+          if (!learningIds.includes(card.id)) setLearningIds(prev => [...prev, card.id]);
+          setMasteredIds(prev => prev.filter(id => id !== card.id));
         }
 
-        if (currentIndex < activeList.length) {
-          setCurrentIndex(prev => prev + 1);
-        }
+        setCurrentIndex(prev => prev + 1);
       };
 
       const handleReset = (missedOnly = false) => {
@@ -273,8 +298,7 @@
         }
       };
 
-      // Summary screen when set is finished
-      if (currentIndex >= activeList.length) {
+      if (currentIndex >= activeList.length || activeList.length === 0) {
         return (
           <div class="bg-white p-8 rounded-2xl border-2 border-[#F8C8DC] shadow-xl text-center max-w-lg mx-auto">
             <h2 class="text-3xl font-extrabold text-[#6B1D2F] mb-3">🎉 Set Complete!</h2>
@@ -313,8 +337,7 @@
 
       return (
         <div class="flex flex-col items-center max-w-2xl mx-auto w-full">
-          
-          {/* Top Progress & Stats */}
+          {/* Progress Header */}
           <div class="w-full flex justify-between items-center mb-3 text-xs font-bold text-[#1B2A4A]">
             <span class="bg-[#F8C8DC] px-3 py-1 rounded-full">Card {currentIndex + 1} of {activeList.length}</span>
             <div class="flex gap-3">
@@ -323,7 +346,7 @@
             </div>
           </div>
 
-          {/* Flip Container */}
+          {/* Flip Card Container */}
           <div 
             onClick={() => setIsFlipped(!isFlipped)} 
             class="w-full h-80 cursor-pointer perspective-1000 select-none my-2"
@@ -346,7 +369,7 @@
             </div>
           </div>
 
-          {/* Action Buttons: Left = Still Learning, Right = Mastered */}
+          {/* Action Sorting Buttons */}
           <div class="w-full grid grid-cols-2 gap-4 mt-6">
             <button 
               onClick={() => handleSort(false)}
@@ -367,7 +390,7 @@
     }
 
     /* -------------------------------------------------------------
-       2. LEARN MODE (WITH KEYBOARD SHORTCUTS 1, 2, 3, 4)
+       2. LEARN MODE (KEYBOARD SHORTCUTS 1, 2, 3, 4)
     ------------------------------------------------------------- */
     function LearnView({ cards }) {
       const [qIndex, setQIndex] = useState(0);
@@ -375,9 +398,8 @@
       const [score, setScore] = useState(0);
       const [options, setOptions] = useState([]);
 
-      const currentCard = cards[qIndex];
+      const currentCard = cards[qIndex] || cards[0];
 
-      // Shuffle options on question change
       useEffect(() => {
         if (!currentCard) return;
         const choices = [currentCard.definition];
@@ -389,9 +411,9 @@
         setSelected(null);
       }, [qIndex, cards]);
 
-      // Handle Keyboard Shortcuts [1, 2, 3, 4] and [Space/Enter]
       useEffect(() => {
         const handleKeyDown = (e) => {
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
           if (!selected) {
             if (['1', '2', '3', '4'].includes(e.key)) {
               const idx = parseInt(e.key) - 1;
@@ -433,4 +455,376 @@
 
           <div class="space-y-3">
             {options.map((opt, idx) => {
-              let btnStyle = "bg-slate-50 border-slate-200 text-
+              let btnStyle = "bg-slate-50 border-slate-200 text-slate-800 hover:bg-[#FDF2F7]";
+              if (selected) {
+                if (opt === currentCard.definition) btnStyle = "bg-emerald-100 border-emerald-500 text-emerald-900 font-bold";
+                else if (opt === selected) btnStyle = "bg-rose-100 border-rose-500 text-rose-900";
+              }
+
+              return (
+                <button
+                  key={idx}
+                  onClick={() => handleSelect(opt)}
+                  class={`w-full text-left p-4 rounded-xl border-2 transition flex items-center justify-between ${btnStyle}`}
+                >
+                  <span class="text-sm md:text-base">{opt}</span>
+                  <span class="text-xs font-extrabold bg-[#1B2A4A] text-white px-2 py-1 rounded ml-2">
+                    [{idx + 1}]
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {selected && (
+            <button 
+              onClick={handleNext} 
+              class="mt-6 w-full py-3 bg-[#6B1D2F] text-white font-bold rounded-xl shadow hover:bg-[#4A121F] transition"
+            >
+              Next Question 👉 <span class="text-xs font-normal opacity-75">(Press Space)</span>
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    /* -------------------------------------------------------------
+       3. CUSTOM PRACTICE TEST MODE
+    ------------------------------------------------------------- */
+    function TestView({ cards, deckTitle }) {
+      const [config, setConfig] = useState({ count: Math.min(5, cards.length || 1) });
+      const [isStarted, setIsStarted] = useState(false);
+      const [userAnswers, setUserAnswers] = useState({});
+      const [submitted, setSubmitted] = useState(false);
+      const [testQuestions, setTestQuestions] = useState([]);
+
+      const startTest = () => {
+        const shuffled = [...cards].sort(() => 0.5 - Math.random()).slice(0, config.count);
+        const questions = shuffled.map(card => {
+          const others = cards.filter(c => c.id !== card.id).sort(() => 0.5 - Math.random());
+          const options = [card.definition, ...others.slice(0, 3).map(o => o.definition)].sort(() => 0.5 - Math.random());
+          return { ...card, options };
+        });
+        setTestQuestions(questions);
+        setUserAnswers({});
+        setSubmitted(false);
+        setIsStarted(true);
+      };
+
+      const calculateScore = () => {
+        let correct = 0;
+        testQuestions.forEach(q => {
+          if (userAnswers[q.id] === q.definition) correct++;
+        });
+        return testQuestions.length ? Math.round((correct / testQuestions.length) * 100) : 0;
+      };
+
+      if (!isStarted) {
+        return (
+          <div class="bg-white p-8 rounded-2xl border-2 border-[#F8C8DC] shadow-xl max-w-md mx-auto text-center">
+            <h2 class="text-2xl font-extrabold text-[#6B1D2F] mb-2">Practice Test Setup 📝</h2>
+            <p class="text-sm text-slate-600 mb-6">Customize your practice exam for {deckTitle}.</p>
+            
+            <div class="mb-6 text-left space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-[#1B2A4A] uppercase mb-1">Number of Questions</label>
+                <input 
+                  type="number" 
+                  min="1" 
+                  max={cards.length}
+                  value={config.count} 
+                  onChange={(e) => setConfig({ count: Math.max(1, Math.min(cards.length, parseInt(e.target.value) || 1)) })}
+                  class="w-full p-3 border rounded-xl font-bold"
+                />
+              </div>
+            </div>
+
+            <button onClick={startTest} class="w-full py-3 bg-[#1B2A4A] text-white font-bold rounded-xl hover:bg-[#6B1D2F] transition shadow">
+              Start Practice Test
+            </button>
+          </div>
+        );
+      }
+
+      if (submitted) {
+        const pct = calculateScore();
+        return (
+          <div class="bg-white p-8 rounded-2xl border-2 border-[#F8C8DC] shadow-xl max-w-2xl mx-auto">
+            <div class="text-center mb-8">
+              <h2 class="text-3xl font-extrabold text-[#6B1D2F] mb-2">Test Results</h2>
+              <div class="inline-block bg-[#EDF4F9] border-2 border-[#1B2A4A] p-6 rounded-2xl my-2">
+                <span class="text-5xl font-black text-[#1B2A4A]">{pct}%</span>
+              </div>
+            </div>
+
+            <div class="space-y-4 mb-6">
+              {testQuestions.map((q, idx) => {
+                const userAns = userAnswers[q.id];
+                const isCorrect = userAns === q.definition;
+                return (
+                  <div key={q.id} class={`p-4 rounded-xl border-2 ${isCorrect ? 'bg-emerald-50 border-emerald-300' : 'bg-rose-50 border-rose-300'}`}>
+                    <p class="font-bold text-sm mb-1">{idx + 1}. {q.term}</p>
+                    <p class="text-xs text-slate-600">Your Answer: <span class={isCorrect ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'}>{userAns || 'Not Answered'}</span></p>
+                    {!isCorrect && <p class="text-xs text-emerald-800 font-bold mt-1">Correct Answer: {q.definition}</p>}
+                  </div>
+                );
+              })}
+            </div>
+
+            <button onClick={() => setIsStarted(false)} class="w-full py-3 bg-[#1B2A4A] text-white font-bold rounded-xl">
+              Retake / New Setup
+            </button>
+          </div>
+        );
+      }
+
+      return (
+        <div class="bg-white p-6 md:p-8 rounded-2xl border-2 border-[#F8C8DC] shadow-xl max-w-2xl mx-auto">
+          <h2 class="text-xl font-bold text-[#6B1D2F] mb-6">Practice Exam ({testQuestions.length} Questions)</h2>
+
+          <div class="space-y-8 mb-8">
+            {testQuestions.map((q, idx) => (
+              <div key={q.id} class="border-b pb-6">
+                <p class="font-extrabold text-[#1B2A4A] mb-3">{idx + 1}. What is the definition of "{q.term}"?</p>
+                <div class="space-y-2">
+                  {q.options.map((opt, oIdx) => (
+                    <label key={oIdx} class="flex items-center gap-3 p-3 rounded-lg border hover:bg-slate-50 cursor-pointer">
+                      <input 
+                        type="radio" 
+                        name={`q-${q.id}`} 
+                        checked={userAnswers[q.id] === opt} 
+                        onChange={() => setUserAnswers({ ...userAnswers, [q.id]: opt })}
+                      />
+                      <span class="text-sm">{opt}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button onClick={() => setSubmitted(true)} class="w-full py-3 bg-[#6B1D2F] text-white font-bold rounded-xl shadow hover:bg-[#4A121F]">
+            Submit Practice Exam
+          </button>
+        </div>
+      );
+    }
+
+    /* -------------------------------------------------------------
+       4. MATCH GAME MODE (HIGH CONTRAST PINK TILES)
+    ------------------------------------------------------------- */
+    function MatchView({ cards }) {
+      const [items, setItems] = useState([]);
+      const [selected, setSelected] = useState([]);
+      const [matched, setMatched] = useState([]);
+      const [timer, setTimer] = useState(0);
+      const [isGameActive, setIsGameActive] = useState(false);
+
+      const startGame = () => {
+        const sampleCards = [...cards].sort(() => 0.5 - Math.random()).slice(0, 6);
+        const gameItems = [];
+        sampleCards.forEach(c => {
+          gameItems.push({ id: c.id + '-term', cardId: c.id, text: c.term });
+          gameItems.push({ id: c.id + '-def', cardId: c.id, text: c.definition });
+        });
+        setItems(gameItems.sort(() => 0.5 - Math.random()));
+        setSelected([]);
+        setMatched([]);
+        setTimer(0);
+        setIsGameActive(true);
+      };
+
+      useEffect(() => {
+        let interval;
+        if (isGameActive && matched.length < items.length) {
+          interval = setInterval(() => setTimer(t => t + 1), 1000);
+        }
+        return () => clearInterval(interval);
+      }, [isGameActive, matched, items]);
+
+      const handleTileClick = (item) => {
+        if (selected.length === 2 || matched.includes(item.id)) return;
+        const newSelected = [...selected, item];
+        setSelected(newSelected);
+
+        if (newSelected.length === 2) {
+          if (newSelected[0].cardId === newSelected[1].cardId && newSelected[0].id !== newSelected[1].id) {
+            setMatched([...matched, newSelected[0].id, newSelected[1].id]);
+            setSelected([]);
+          } else {
+            setTimeout(() => setSelected([]), 800);
+          }
+        }
+      };
+
+      return (
+        <div class="text-center max-w-3xl mx-auto w-full">
+          {!isGameActive ? (
+            <div class="bg-white p-8 rounded-2xl border-2 border-[#F8C8DC] shadow-xl">
+              <h2 class="text-2xl font-extrabold text-[#6B1D2F] mb-2">Speed Match Game ⚡</h2>
+              <p class="text-slate-600 mb-6">Match all terms to their definitions as fast as possible!</p>
+              <button onClick={startGame} class="px-8 py-3 bg-[#1B2A4A] text-white font-bold rounded-xl shadow hover:bg-[#6B1D2F]">
+                Start Game
+              </button>
+            </div>
+          ) : (
+            <div>
+              <div class="flex justify-between items-center mb-4 bg-white px-4 py-2 rounded-xl border border-[#F8C8DC]">
+                <span class="text-lg font-bold text-[#6B1D2F]">⏱️ Time: {timer}s</span>
+                <button onClick={startGame} class="text-xs text-[#1B2A4A] underline font-bold">Restart</button>
+              </div>
+
+              {matched.length === items.length ? (
+                <div class="bg-white p-8 rounded-2xl border-2 border-emerald-400 shadow-xl">
+                  <h2 class="text-3xl font-extrabold text-emerald-600 mb-2">🎉 Victory!</h2>
+                  <p class="text-slate-700 text-lg mb-4">Cleared in <span class="font-bold">{timer} seconds</span>!</p>
+                  <button onClick={startGame} class="px-6 py-2 bg-[#6B1D2F] text-white font-bold rounded-lg">Play Again</button>
+                </div>
+              ) : (
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {items.map(item => {
+                    const isSel = selected.some(s => s.id === item.id);
+                    const isMatch = matched.includes(item.id);
+                    if (isMatch) return <div key={item.id} class="h-28 opacity-0"></div>;
+
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleTileClick(item)}
+                        class={`h-28 p-3 rounded-xl border-2 text-xs md:text-sm font-bold flex items-center justify-center transition shadow ${
+                          isSel 
+                            ? 'bg-[#6B1D2F] text-white border-[#6B1D2F] scale-105' 
+                            : 'bg-[#F8C8DC] border-[#F8C8DC] text-[#1B2A4A] hover:bg-[#f3b4cd]'
+                        }`}
+                      >
+                        {item.text}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    /* -------------------------------------------------------------
+       5. PRINTABLE STUDY GUIDE
+    ------------------------------------------------------------- */
+    function StudyGuideView({ cards, title }) {
+      const [search, setSearch] = useState('');
+
+      const filtered = cards.filter(c => 
+        c.term.toLowerCase().includes(search.toLowerCase()) || 
+        c.definition.toLowerCase().includes(search.toLowerCase())
+      );
+
+      return (
+        <div class="bg-white p-6 md:p-8 rounded-2xl border-2 border-[#F8C8DC] shadow-xl max-w-3xl mx-auto print-area">
+          <div class="flex justify-between items-center mb-6 no-print">
+            <input 
+              type="text" 
+              placeholder="🔍 Search study guide..." 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)}
+              class="p-2 border rounded-xl text-sm w-2/3"
+            />
+            <button 
+              onClick={() => window.print()} 
+              class="px-4 py-2 bg-[#1B2A4A] text-white rounded-xl font-bold text-xs"
+            >
+              🖨️ Print / Save PDF
+            </button>
+          </div>
+
+          <h2 class="text-2xl font-extrabold text-[#6B1D2F] border-b pb-2 mb-4">{title} - Study Guide</h2>
+          
+          <div class="divide-y">
+            {filtered.map(c => (
+              <div key={c.id} class="py-3 grid grid-cols-3 gap-4">
+                <span class="font-bold text-[#1B2A4A] col-span-1">{c.term}</span>
+                <span class="text-slate-700 col-span-2">{c.definition}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    /* -------------------------------------------------------------
+       6. EDIT DECK & CARDS VIEW
+    ------------------------------------------------------------- */
+    function EditDeckView({ deck, onUpdateCards, onDeleteDeck }) {
+      const [term, setTerm] = useState('');
+      const [definition, setDefinition] = useState('');
+
+      const handleAdd = (e) => {
+        e.preventDefault();
+        if (!term.trim() || !definition.trim()) return;
+        const newCard = { id: Date.now(), term: term.trim(), definition: definition.trim() };
+        onUpdateCards([...(deck.cards || []), newCard]);
+        setTerm('');
+        setDefinition('');
+      };
+
+      const handleDeleteCard = (id) => {
+        onUpdateCards((deck.cards || []).filter(c => c.id !== id));
+      };
+
+      return (
+        <div class="space-y-6 max-w-3xl mx-auto w-full">
+          {/* Add Form */}
+          <form onSubmit={handleAdd} class="bg-white p-6 rounded-2xl border-2 border-[#F8C8DC] shadow-md">
+            <h3 class="text-lg font-bold text-[#6B1D2F] mb-4">Add Card to {deck.title}</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+              <input 
+                type="text" 
+                placeholder="Enter Term" 
+                value={term} 
+                onChange={e => setTerm(e.target.value)}
+                class="p-3 border rounded-xl"
+              />
+              <input 
+                type="text" 
+                placeholder="Enter Definition" 
+                value={definition} 
+                onChange={e => setDefinition(e.target.value)}
+                class="p-3 border rounded-xl"
+              />
+            </div>
+            <button type="submit" class="w-full py-3 bg-[#6B1D2F] text-white font-bold rounded-xl">
+              + Add Card
+            </button>
+          </form>
+
+          {/* Current Cards */}
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-md">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="font-bold text-[#1B2A4A]">Current Cards ({deck.cards?.length || 0})</h3>
+              <button onClick={onDeleteDeck} class="text-xs text-rose-600 font-bold underline">
+                Delete Entire Set
+              </button>
+            </div>
+            
+            <div class="divide-y max-h-96 overflow-y-auto">
+              {(deck.cards || []).map(c => (
+                <div key={c.id} class="py-3 flex justify-between items-center text-sm">
+                  <div class="grid grid-cols-2 gap-4 flex-1 pr-4">
+                    <span class="font-bold">{c.term}</span>
+                    <span class="text-slate-600">{c.definition}</span>
+                  </div>
+                  <button onClick={() => handleDeleteCard(c.id)} class="text-rose-500 font-bold">🗑️</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Render App
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
