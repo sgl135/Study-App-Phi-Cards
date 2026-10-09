@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Phi Cards - Study Smarter</title>
   
-  <!-- Fast, Reliable CDNs for Tailwind CSS, React, ReactDOM, and Babel -->
+  <!-- CDNs for Tailwind CSS, React, ReactDOM, and Babel -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
@@ -68,10 +68,16 @@
       }
     ];
 
+    // Helper to normalize strings for free response checking
+    const normalizeAnswer = (str) => {
+      if (!str) return '';
+      return str.toLowerCase().trim().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").replace(/\s+/g, " ");
+    };
+
     // Safe LocalStorage Loader with Fallback
     const loadSavedDecks = () => {
       try {
-        const saved = localStorage.getItem('phicards_decks_v4');
+        const saved = localStorage.getItem('phicards_decks_v5');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -90,13 +96,12 @@
       // Persist to local storage
       useEffect(() => {
         try {
-          localStorage.setItem('phicards_decks_v4', JSON.stringify(decks));
+          localStorage.setItem('phicards_decks_v5', JSON.stringify(decks));
         } catch (e) {
           console.error("Failed to save decks:", e);
         }
       }, [decks]);
 
-      // Safely find active deck
       const activeDeck = decks.find(d => d && d.id === activeDeckId) || decks[0] || DEFAULT_DECKS[0];
       const safeCards = Array.isArray(activeDeck?.cards) ? activeDeck.cards : [];
 
@@ -131,14 +136,6 @@
         setDecks(decks.map(d => d.id === activeDeck.id ? { ...d, cards: newCards } : d));
       };
 
-      const handleResetData = () => {
-        if (confirm('Reset all app data to default sets?')) {
-          localStorage.removeItem('phicards_decks_v4');
-          setDecks(DEFAULT_DECKS);
-          setActiveDeckId(DEFAULT_DECKS[0].id);
-        }
-      };
-
       return (
         <div class="min-h-screen flex flex-col">
           {/* Header */}
@@ -154,7 +151,7 @@
                 </div>
               </div>
 
-              {/* Set Switcher & Controls */}
+              {/* Set Switcher */}
               <div class="flex items-center gap-2">
                 <select 
                   value={activeDeckId}
@@ -201,7 +198,7 @@
             </div>
           </header>
 
-          {/* Main Body Area */}
+          {/* Main Content Workspace */}
           <main class="flex-1 max-w-5xl w-full mx-auto p-4 md:p-6 flex flex-col justify-center">
             {safeCards.length === 0 && activeMode !== 'edit' ? (
               <div class="bg-white p-8 rounded-2xl text-center border-2 border-[#F8C8DC] shadow-md my-auto">
@@ -231,17 +228,12 @@
               </>
             )}
           </main>
-
-          {/* Footer */}
-          <footer class="py-3 text-center text-xs text-slate-500 border-t border-slate-200 mt-auto no-print">
-            Phi Cards &bull; <button onClick={handleResetData} class="underline hover:text-[#6B1D2F]">Reset App Data</button>
-          </footer>
         </div>
       );
     }
 
     /* -------------------------------------------------------------
-       1. FLASHCARDS MODE (KNOW vs. STILL LEARNING SORTING)
+       1. FLASHCARDS MODE (FIXED CARD FLASH BUG)
     ------------------------------------------------------------- */
     function FlashcardsView({ cards }) {
       const [currentIndex, setCurrentIndex] = useState(0);
@@ -256,7 +248,7 @@
 
       const card = activeList[currentIndex] || activeList[0];
 
-      // Keyboard Controls: Space = Flip, Left = Still Learning, Right = Mastered
+      // Keyboard Shortcuts
       useEffect(() => {
         const handleKeyDown = (e) => {
           if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -275,7 +267,7 @@
 
       const handleSort = (isMastered) => {
         if (!card) return;
-        setIsFlipped(false);
+        setIsFlipped(false); // Reset flip state for new card
 
         if (isMastered) {
           if (!masteredIds.includes(card.id)) setMasteredIds(prev => [...prev, card.id]);
@@ -337,7 +329,7 @@
 
       return (
         <div class="flex flex-col items-center max-w-2xl mx-auto w-full">
-          {/* Progress Header */}
+          {/* Progress Indicator */}
           <div class="w-full flex justify-between items-center mb-3 text-xs font-bold text-[#1B2A4A]">
             <span class="bg-[#F8C8DC] px-3 py-1 rounded-full">Card {currentIndex + 1} of {activeList.length}</span>
             <div class="flex gap-3">
@@ -346,8 +338,9 @@
             </div>
           </div>
 
-          {/* Flip Card Container */}
+          {/* Flip Container with key={card?.id} to prevent answer flashing */}
           <div 
+            key={card?.id || currentIndex}
             onClick={() => setIsFlipped(!isFlipped)} 
             class="w-full h-80 cursor-pointer perspective-1000 select-none my-2"
           >
@@ -369,7 +362,7 @@
             </div>
           </div>
 
-          {/* Action Sorting Buttons */}
+          {/* Action Buttons */}
           <div class="w-full grid grid-cols-2 gap-4 mt-6">
             <button 
               onClick={() => handleSort(false)}
@@ -390,16 +383,21 @@
     }
 
     /* -------------------------------------------------------------
-       2. LEARN MODE (KEYBOARD SHORTCUTS 1, 2, 3, 4)
+       2. LEARN MODE (MULTIPLE CHOICE & FREE RESPONSE / WRITTEN)
     ------------------------------------------------------------- */
     function LearnView({ cards }) {
+      const [typeMode, setTypeMode] = useState('mc'); // 'mc' or 'written'
       const [qIndex, setQIndex] = useState(0);
       const [selected, setSelected] = useState(null);
+      const [writtenInput, setWrittenInput] = useState('');
+      const [isSubmitted, setIsSubmitted] = useState(false);
+      const [isCorrect, setIsCorrect] = useState(false);
       const [score, setScore] = useState(0);
       const [options, setOptions] = useState([]);
 
       const currentCard = cards[qIndex] || cards[0];
 
+      // Shuffle options on question change
       useEffect(() => {
         if (!currentCard) return;
         const choices = [currentCard.definition];
@@ -409,18 +407,26 @@
         }
         setOptions(choices.sort(() => 0.5 - Math.random()));
         setSelected(null);
-      }, [qIndex, cards]);
+        setWrittenInput('');
+        setIsSubmitted(false);
+        setIsCorrect(false);
+      }, [qIndex, cards, typeMode]);
 
+      // Keyboard Controls
       useEffect(() => {
         const handleKeyDown = (e) => {
-          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-          if (!selected) {
-            if (['1', '2', '3', '4'].includes(e.key)) {
-              const idx = parseInt(e.key) - 1;
-              if (options[idx]) handleSelect(options[idx]);
+          if (typeMode === 'mc') {
+            if (!selected) {
+              if (['1', '2', '3', '4'].includes(e.key)) {
+                const idx = parseInt(e.key) - 1;
+                if (options[idx]) handleSelect(options[idx]);
+              }
+            } else if (e.code === 'Space' || e.code === 'Enter') {
+              e.preventDefault();
+              handleNext();
             }
           } else {
-            if (e.code === 'Space' || e.code === 'Enter') {
+            if (isSubmitted && (e.code === 'Space' || e.code === 'Enter')) {
               e.preventDefault();
               handleNext();
             }
@@ -428,12 +434,30 @@
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-      }, [selected, options, qIndex]);
+      }, [selected, options, typeMode, isSubmitted]);
 
       const handleSelect = (choice) => {
         if (selected) return;
         setSelected(choice);
-        if (choice === currentCard.definition) setScore(score + 1);
+        if (choice === currentCard.definition) setScore(s => s + 1);
+      };
+
+      const handleWrittenSubmit = (e) => {
+        if (e) e.preventDefault();
+        if (!writtenInput.trim() || isSubmitted) return;
+        
+        const normUser = normalizeAnswer(writtenInput);
+        const normTarget = normalizeAnswer(currentCard.definition);
+        const correct = normUser === normTarget;
+
+        setIsCorrect(correct);
+        setIsSubmitted(true);
+        if (correct) setScore(s => s + 1);
+      };
+
+      const handleOverride = () => {
+        setIsCorrect(true);
+        setScore(s => s + 1);
       };
 
       const handleNext = () => {
@@ -442,57 +466,139 @@
 
       return (
         <div class="bg-white p-6 md:p-8 rounded-2xl border-2 border-[#F8C8DC] shadow-xl max-w-2xl mx-auto w-full">
-          <div class="flex justify-between items-center mb-6">
-            <span class="text-xs font-bold text-[#1B2A4A] bg-[#EDF4F9] px-3 py-1 rounded-full">
-              Question {qIndex + 1} of {cards.length}
-            </span>
-            <span class="text-xs font-bold bg-[#F8C8DC] text-[#6B1D2F] px-3 py-1 rounded-full">
-              Score: {score}
-            </span>
+          {/* Top Controls: Mode Switcher & Score */}
+          <div class="flex flex-wrap justify-between items-center gap-3 mb-6 border-b pb-4">
+            <div class="flex bg-[#EDF4F9] p-1 rounded-xl">
+              <button 
+                onClick={() => setTypeMode('mc')}
+                class={`px-3 py-1 rounded-lg text-xs font-bold transition ${typeMode === 'mc' ? 'bg-[#1B2A4A] text-white shadow' : 'text-[#1B2A4A]'}`}
+              >
+                🔘 Multiple Choice
+              </button>
+              <button 
+                onClick={() => setTypeMode('written')}
+                class={`px-3 py-1 rounded-lg text-xs font-bold transition ${typeMode === 'written' ? 'bg-[#1B2A4A] text-white shadow' : 'text-[#1B2A4A]'}`}
+              >
+                ✍️ Free Response
+              </button>
+            </div>
+            
+            <div class="flex gap-2 text-xs font-bold">
+              <span class="bg-[#EDF4F9] text-[#1B2A4A] px-3 py-1 rounded-full">
+                {qIndex + 1} / {cards.length}
+              </span>
+              <span class="bg-[#F8C8DC] text-[#6B1D2F] px-3 py-1 rounded-full">
+                Score: {score}
+              </span>
+            </div>
           </div>
 
           <h3 class="text-2xl font-extrabold text-[#1B2A4A] mb-6">{currentCard?.term}</h3>
 
-          <div class="space-y-3">
-            {options.map((opt, idx) => {
-              let btnStyle = "bg-slate-50 border-slate-200 text-slate-800 hover:bg-[#FDF2F7]";
-              if (selected) {
-                if (opt === currentCard.definition) btnStyle = "bg-emerald-100 border-emerald-500 text-emerald-900 font-bold";
-                else if (opt === selected) btnStyle = "bg-rose-100 border-rose-500 text-rose-900";
-              }
+          {/* MULTIPLE CHOICE MODE */}
+          {typeMode === 'mc' && (
+            <div class="space-y-3">
+              {options.map((opt, idx) => {
+                let btnStyle = "bg-slate-50 border-slate-200 text-slate-800 hover:bg-[#FDF2F7]";
+                if (selected) {
+                  if (opt === currentCard.definition) btnStyle = "bg-emerald-100 border-emerald-500 text-emerald-900 font-bold";
+                  else if (opt === selected) btnStyle = "bg-rose-100 border-rose-500 text-rose-900";
+                }
 
-              return (
-                <button
-                  key={idx}
-                  onClick={() => handleSelect(opt)}
-                  class={`w-full text-left p-4 rounded-xl border-2 transition flex items-center justify-between ${btnStyle}`}
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => handleSelect(opt)}
+                    class={`w-full text-left p-4 rounded-xl border-2 transition flex items-center justify-between ${btnStyle}`}
+                  >
+                    <span class="text-sm md:text-base">{opt}</span>
+                    <span class="text-xs font-extrabold bg-[#1B2A4A] text-white px-2 py-1 rounded ml-2">
+                      [{idx + 1}]
+                    </span>
+                  </button>
+                );
+              })}
+
+              {selected && (
+                <button 
+                  onClick={handleNext} 
+                  class="mt-6 w-full py-3 bg-[#6B1D2F] text-white font-bold rounded-xl shadow hover:bg-[#4A121F] transition"
                 >
-                  <span class="text-sm md:text-base">{opt}</span>
-                  <span class="text-xs font-extrabold bg-[#1B2A4A] text-white px-2 py-1 rounded ml-2">
-                    [{idx + 1}]
-                  </span>
+                  Next Question 👉 <span class="text-xs font-normal opacity-75">(Press Space)</span>
                 </button>
-              );
-            })}
-          </div>
+              )}
+            </div>
+          )}
 
-          {selected && (
-            <button 
-              onClick={handleNext} 
-              class="mt-6 w-full py-3 bg-[#6B1D2F] text-white font-bold rounded-xl shadow hover:bg-[#4A121F] transition"
-            >
-              Next Question 👉 <span class="text-xs font-normal opacity-75">(Press Space)</span>
-            </button>
+          {/* FREE RESPONSE / WRITTEN MODE */}
+          {typeMode === 'written' && (
+            <div>
+              <form onSubmit={handleWrittenSubmit} class="space-y-4">
+                <textarea
+                  disabled={isSubmitted}
+                  rows="3"
+                  placeholder="Type the definition here..."
+                  value={writtenInput}
+                  onChange={(e) => setWrittenInput(e.target.value)}
+                  class="w-full p-4 border-2 border-slate-300 rounded-xl focus:outline-none focus:border-[#6B1D2F] text-sm md:text-base"
+                />
+
+                {!isSubmitted ? (
+                  <button 
+                    type="submit" 
+                    class="w-full py-3 bg-[#6B1D2F] text-white font-bold rounded-xl shadow hover:bg-[#4A121F]"
+                  >
+                    Submit Answer
+                  </button>
+                ) : (
+                  <div class="space-y-4">
+                    <div class={`p-4 rounded-xl border-2 ${isCorrect ? 'bg-emerald-50 border-emerald-400' : 'bg-rose-50 border-rose-400'}`}>
+                      <p class={`font-extrabold text-base mb-1 ${isCorrect ? 'text-emerald-800' : 'text-rose-800'}`}>
+                        {isCorrect ? '🎉 Correct!' : '❌ Incorrect'}
+                      </p>
+                      
+                      {!isCorrect && (
+                        <div class="text-xs space-y-1 mt-2">
+                          <p class="text-slate-600">Your Answer: <span class="font-bold text-rose-700">{writtenInput || '(Blank)'}</span></p>
+                          <p class="text-emerald-800 font-bold">Exact Definition: {currentCard.definition}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {!isCorrect && (
+                      <button 
+                        type="button" 
+                        onClick={handleOverride}
+                        class="w-full py-2 bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs rounded-lg hover:bg-slate-200"
+                      >
+                        ✏️ Override: I was right
+                      </button>
+                    )}
+
+                    <button 
+                      type="button" 
+                      onClick={handleNext}
+                      class="w-full py-3 bg-[#1B2A4A] text-white font-bold rounded-xl shadow hover:bg-slate-800"
+                    >
+                      Next Question 👉 <span class="text-xs font-normal opacity-75">(Press Space)</span>
+                    </button>
+                  </div>
+                )}
+              </form>
+            </div>
           )}
         </div>
       );
     }
 
     /* -------------------------------------------------------------
-       3. CUSTOM PRACTICE TEST MODE
+       3. CUSTOM PRACTICE TEST MODE (MC, WRITTEN, OR MIXED)
     ------------------------------------------------------------- */
     function TestView({ cards, deckTitle }) {
-      const [config, setConfig] = useState({ count: Math.min(5, cards.length || 1) });
+      const [config, setConfig] = useState({ 
+        count: Math.min(5, cards.length || 1), 
+        format: 'mixed' // 'mc', 'written', or 'mixed'
+      });
       const [isStarted, setIsStarted] = useState(false);
       const [userAnswers, setUserAnswers] = useState({});
       const [submitted, setSubmitted] = useState(false);
@@ -501,9 +607,13 @@
       const startTest = () => {
         const shuffled = [...cards].sort(() => 0.5 - Math.random()).slice(0, config.count);
         const questions = shuffled.map(card => {
+          // Determine format type
+          let qType = config.format;
+          if (qType === 'mixed') qType = Math.random() > 0.5 ? 'mc' : 'written';
+
           const others = cards.filter(c => c.id !== card.id).sort(() => 0.5 - Math.random());
           const options = [card.definition, ...others.slice(0, 3).map(o => o.definition)].sort(() => 0.5 - Math.random());
-          return { ...card, options };
+          return { ...card, qType, options };
         });
         setTestQuestions(questions);
         setUserAnswers({});
@@ -514,7 +624,12 @@
       const calculateScore = () => {
         let correct = 0;
         testQuestions.forEach(q => {
-          if (userAnswers[q.id] === q.definition) correct++;
+          const uAns = userAnswers[q.id] || '';
+          if (q.qType === 'mc') {
+            if (uAns === q.definition) correct++;
+          } else {
+            if (normalizeAnswer(uAns) === normalizeAnswer(q.definition)) correct++;
+          }
         });
         return testQuestions.length ? Math.round((correct / testQuestions.length) * 100) : 0;
       };
@@ -533,9 +648,22 @@
                   min="1" 
                   max={cards.length}
                   value={config.count} 
-                  onChange={(e) => setConfig({ count: Math.max(1, Math.min(cards.length, parseInt(e.target.value) || 1)) })}
+                  onChange={(e) => setConfig({ ...config, count: Math.max(1, Math.min(cards.length, parseInt(e.target.value) || 1)) })}
                   class="w-full p-3 border rounded-xl font-bold"
                 />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-[#1B2A4A] uppercase mb-1">Question Type</label>
+                <select 
+                  value={config.format}
+                  onChange={(e) => setConfig({ ...config, format: e.target.value })}
+                  class="w-full p-3 border rounded-xl font-bold bg-slate-50"
+                >
+                  <option value="mixed">🔀 Mixed (Multiple Choice + Free Response)</option>
+                  <option value="mc">🔘 Multiple Choice Only</option>
+                  <option value="written">✍️ Free Response Only</option>
+                </select>
               </div>
             </div>
 
@@ -559,13 +687,16 @@
 
             <div class="space-y-4 mb-6">
               {testQuestions.map((q, idx) => {
-                const userAns = userAnswers[q.id];
-                const isCorrect = userAns === q.definition;
+                const userAns = userAnswers[q.id] || '';
+                const isCorrect = q.qType === 'mc' 
+                  ? userAns === q.definition 
+                  : normalizeAnswer(userAns) === normalizeAnswer(q.definition);
+
                 return (
                   <div key={q.id} class={`p-4 rounded-xl border-2 ${isCorrect ? 'bg-emerald-50 border-emerald-300' : 'bg-rose-50 border-rose-300'}`}>
                     <p class="font-bold text-sm mb-1">{idx + 1}. {q.term}</p>
                     <p class="text-xs text-slate-600">Your Answer: <span class={isCorrect ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'}>{userAns || 'Not Answered'}</span></p>
-                    {!isCorrect && <p class="text-xs text-emerald-800 font-bold mt-1">Correct Answer: {q.definition}</p>}
+                    {!isCorrect && <p class="text-xs text-emerald-800 font-bold mt-1">Correct Definition: {q.definition}</p>}
                   </div>
                 );
               })}
@@ -586,19 +717,30 @@
             {testQuestions.map((q, idx) => (
               <div key={q.id} class="border-b pb-6">
                 <p class="font-extrabold text-[#1B2A4A] mb-3">{idx + 1}. What is the definition of "{q.term}"?</p>
-                <div class="space-y-2">
-                  {q.options.map((opt, oIdx) => (
-                    <label key={oIdx} class="flex items-center gap-3 p-3 rounded-lg border hover:bg-slate-50 cursor-pointer">
-                      <input 
-                        type="radio" 
-                        name={`q-${q.id}`} 
-                        checked={userAnswers[q.id] === opt} 
-                        onChange={() => setUserAnswers({ ...userAnswers, [q.id]: opt })}
-                      />
-                      <span class="text-sm">{opt}</span>
-                    </label>
-                  ))}
-                </div>
+                
+                {q.qType === 'mc' ? (
+                  <div class="space-y-2">
+                    {q.options.map((opt, oIdx) => (
+                      <label key={oIdx} class="flex items-center gap-3 p-3 rounded-lg border hover:bg-slate-50 cursor-pointer">
+                        <input 
+                          type="radio" 
+                          name={`q-${q.id}`} 
+                          checked={userAnswers[q.id] === opt} 
+                          onChange={() => setUserAnswers({ ...userAnswers, [q.id]: opt })}
+                        />
+                        <span class="text-sm">{opt}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <textarea
+                    rows="2"
+                    placeholder="Type your answer..."
+                    value={userAnswers[q.id] || ''}
+                    onChange={(e) => setUserAnswers({ ...userAnswers, [q.id]: e.target.value })}
+                    class="w-full p-3 border rounded-xl text-sm focus:outline-none focus:border-[#6B1D2F]"
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -611,7 +753,7 @@
     }
 
     /* -------------------------------------------------------------
-       4. MATCH GAME MODE (HIGH CONTRAST PINK TILES)
+       4. MATCH GAME MODE
     ------------------------------------------------------------- */
     function MatchView({ cards }) {
       const [items, setItems] = useState([]);
@@ -710,7 +852,7 @@
     }
 
     /* -------------------------------------------------------------
-       5. PRINTABLE STUDY GUIDE
+       5. STUDY GUIDE VIEW
     ------------------------------------------------------------- */
     function StudyGuideView({ cards, title }) {
       const [search, setSearch] = useState('');
@@ -725,7 +867,7 @@
           <div class="flex justify-between items-center mb-6 no-print">
             <input 
               type="text" 
-              placeholder="🔍 Search study guide..." 
+              placeholder="🔍 Search terms or definitions..." 
               value={search} 
               onChange={(e) => setSearch(e.target.value)}
               class="p-2 border rounded-xl text-sm w-2/3"
@@ -774,7 +916,6 @@
 
       return (
         <div class="space-y-6 max-w-3xl mx-auto w-full">
-          {/* Add Form */}
           <form onSubmit={handleAdd} class="bg-white p-6 rounded-2xl border-2 border-[#F8C8DC] shadow-md">
             <h3 class="text-lg font-bold text-[#6B1D2F] mb-4">Add Card to {deck.title}</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
@@ -798,7 +939,6 @@
             </button>
           </form>
 
-          {/* Current Cards */}
           <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-md">
             <div class="flex justify-between items-center mb-4">
               <h3 class="font-bold text-[#1B2A4A]">Current Cards ({deck.cards?.length || 0})</h3>
@@ -823,7 +963,6 @@
       );
     }
 
-    // Render App
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>
